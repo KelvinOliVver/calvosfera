@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+# Rules
+- Voice calls use WebRTC mesh with signaling over Cloud realtime broadcast/presence (`src/hooks/useVoice.ts`); no media server, so best for small groups.
+- Media bucket is private (public buckets blocked); uploads store long-lived signed URLs in profiles.
