@@ -74,7 +74,7 @@ export function useVoice(me: string) {
           a.autoplay = true;
           audios.set(peer, a);
         }
-        a.srcObject = e.streams[0];
+        a.srcObject = e.streams[0] ?? null;
         a.play().catch(() => {});
       };
       pcs.set(peer, pc);

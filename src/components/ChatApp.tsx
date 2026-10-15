@@ -102,7 +102,10 @@ export function ChatApp({ userId }: { userId: string }) {
       .insert({ channel_id: active, user_id: userId, content: content.slice(0, 2000) })
       .select()
       .single();
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setMessages((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data]));
   }
 
@@ -196,7 +199,7 @@ export function ChatApp({ userId }: { userId: string }) {
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {messages.map((m, i) => {
             const p = profiles[m.user_id];
-            const grouped = i > 0 && messages[i - 1].user_id === m.user_id;
+            const grouped = i > 0 && messages[i - 1]?.user_id === m.user_id;
             return (
               <div key={m.id} className={`group flex gap-3 ${grouped ? "-mt-3" : ""}`}>
                 <div className="w-10 shrink-0">

@@ -15,7 +15,7 @@ export type Profile = {
   bio: string | null;
 };
 
-export function Avatar({ p, size = 40, online }: { p?: Profile; size?: number; online?: boolean }) {
+export function Avatar({ p, size = 40, online }: { p?: Profile | undefined; size?: number; online?: boolean }) {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {p?.avatar_url ? (
@@ -101,7 +101,10 @@ export function EditProfile({
       })
       .eq("id", me.id);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     onSaved(draft);
     onOpenChange(false);
     toast.success("Perfil salvo ✦");
