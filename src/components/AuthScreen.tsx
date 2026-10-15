@@ -52,8 +52,8 @@ export function AuthScreen() {
           </p>
         </div>
       </div>
-      <div className="flex items-center justify-center bg-gradient-to-br from-[#21172f] via-[#171020] to-[#1d1428] px-6 py-12">
-        <div className="w-full max-w-[440px] rounded-2xl border border-white/[0.08] bg-[#241a33]/85 p-7 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-10">
+      <div className="flex items-center justify-center bg-gradient-to-br from-[#160d22] via-[#0c0812] to-[#1b1027] px-6 py-12">
+        <div className="w-full max-w-[440px] rounded-2xl border border-white/[0.08] bg-[#1c1428]/95 p-7 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-10">
           <div className="mb-6 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sakura font-display text-sm text-white shadow-lg shadow-primary/20">
             C
           </div>

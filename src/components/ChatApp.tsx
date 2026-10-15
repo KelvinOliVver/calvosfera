@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -15,7 +15,6 @@ import {
   LogOut,
   Pencil,
   Send,
-  ChevronDown,
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +32,7 @@ import {
   nameOf,
   type Profile,
 } from "./ProfileDialogs";
+import { MessageText } from "./MessageText";
 
 type Channel = { id: string; name: string; kind: string; position: number };
 type Message = {
@@ -70,6 +70,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [viewing, setViewing] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [mobileMembersOpen, setMobileMembersOpen] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -100,7 +101,7 @@ export function ChatApp({ userId }: { userId: string }) {
             .then(({ data }) => setBannedIds((data ?? []).map((b) => b.user_id)));
       })
       .catch(() => setStatus({ isAdmin: false, banned: false, reason: null }));
-  }, [userId]);
+  }, [userId, checkInFn]);
 
   async function toggleBan(p: Profile) {
     const isBanned = bannedIds.includes(p.id);
@@ -134,14 +135,14 @@ export function ChatApp({ userId }: { userId: string }) {
     );
   };
 
-  const loadTimeout = async () => {
+  const loadTimeout = useCallback(async () => {
     const { data } = await supabase
       .from("timeouts")
       .select("until")
       .eq("user_id", userId)
       .maybeSingle();
     setMutedUntil(data && new Date(data.until) > new Date() ? new Date(data.until) : null);
-  };
+  }, [userId]);
 
   useEffect(() => {
     loadChannels();
@@ -161,7 +162,7 @@ export function ChatApp({ userId }: { userId: string }) {
       clearInterval(t);
       supabase.removeChannel(rt);
     };
-  }, [userId]);
+  }, [userId, loadTimeout]);
 
   useEffect(() => {
     const ch = supabase.channel("online", { config: { presence: { key: userId } } });
@@ -382,6 +383,10 @@ export function ChatApp({ userId }: { userId: string }) {
   );
   const onlineMembers = sortedMembers.filter((p) => online.includes(p.id));
   const offlineMembers = sortedMembers.filter((p) => !online.includes(p.id));
+  const profilesByUsername = useMemo(
+    () => Object.fromEntries(Object.values(profiles).map((p) => [p.username.toLowerCase(), p])),
+    [profiles],
+  );
 
   if (status?.banned) {
     return (
@@ -411,8 +416,17 @@ export function ChatApp({ userId }: { userId: string }) {
           onClick={() => setNavOpen(false)}
         />
       )}
+      <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-3 bg-[#0b0710] py-3 md:flex">
+        <div
+          title="Calvosfera"
+          aria-current="page"
+          className="relative flex h-12 w-12 items-center justify-center rounded-[18px] bg-sakura text-lg font-bold text-white shadow-lg shadow-primary/20"
+        >
+          <span className="absolute -left-[13px] h-8 rounded-r-full bg-white" />C
+        </div>
+      </aside>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-black/25 bg-[#20172d]/95 shadow-2xl shadow-black/30 backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-black/25 bg-[#171020]/95 shadow-2xl shadow-black/30 backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[58px] items-center gap-3 border-b border-black/20 px-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sakura text-lg font-bold text-white shadow-md shadow-primary/30">
@@ -424,7 +438,6 @@ export function ChatApp({ userId }: { userId: string }) {
               Comunidade · {online.length} online
             </span>
           </span>
-          <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
           <button
             className="rounded p-1 text-muted-foreground hover:bg-white/[0.08] md:hidden"
             onClick={() => setNavOpen(false)}
@@ -538,8 +551,8 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-gradient-to-br from-[#21172f]/95 via-[#191426]/95 to-[#20152d]/95">
-        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#1b1528]/85 px-4 shadow-sm shadow-black/20 backdrop-blur-xl">
+      <main className="flex min-w-0 flex-1 flex-col bg-gradient-to-br from-[#100a18] via-[#0c0912] to-[#120a1b]">
+        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#110c19]/90 px-4 shadow-sm shadow-black/20 backdrop-blur-xl">
           <button
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground md:hidden"
             onClick={() => setNavOpen(true)}
@@ -551,14 +564,14 @@ export function ChatApp({ userId }: { userId: string }) {
           <div className="min-w-0">
             <span className="block truncate text-sm font-bold">{activeCh?.name ?? "Canais"}</span>
             <span className="hidden text-[11px] text-muted-foreground sm:block">
-              Bem-vindo ao canal. Converse e compartilhe com a comunidade.
+              Converse e compartilhe com a comunidade
             </span>
           </div>
           <div className="ml-auto hidden items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs text-muted-foreground lg:flex">
             <Users className="h-3.5 w-3.5 text-online" />
             <span>{online.length} online</span>
           </div>
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:hidden">
+          <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:hidden">
             <Users className="h-3.5 w-3.5 text-online" />
             {online.length}
           </span>
@@ -567,6 +580,14 @@ export function ChatApp({ userId }: { userId: string }) {
               <ShieldCheck className="h-3 w-3" /> Admin
             </span>
           )}
+          <button
+            onClick={() => setMobileMembersOpen((open) => !open)}
+            aria-label={mobileMembersOpen ? "Fechar lista de membros" : "Abrir lista de membros"}
+            aria-expanded={mobileMembersOpen}
+            className="ml-auto rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground lg:hidden"
+          >
+            <Users className="h-4 w-4" />
+          </button>
         </header>
         <div className="flex-1 overflow-y-auto px-2 py-4 sm:px-4">
           {loadingMsgs && (
@@ -587,63 +608,97 @@ export function ChatApp({ userId }: { userId: string }) {
           )}
           {messages.map((m, i) => {
             const p = profiles[m.user_id];
-            const grouped = i > 0 && messages[i - 1]?.user_id === m.user_id;
+            const previous = messages[i - 1];
+            const messageDate = new Date(m.created_at);
+            const previousDate = previous ? new Date(previous.created_at) : null;
+            const showDate =
+              !previous || messageDate.toDateString() !== previousDate?.toDateString();
+            const grouped =
+              !!previous &&
+              previous.user_id === m.user_id &&
+              messageDate.toDateString() === previousDate?.toDateString() &&
+              messageDate.getTime() - previousDate.getTime() < 5 * 60 * 1000;
             return (
-              <div
-                key={m.id}
-                className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-white/[0.045] sm:px-3 ${grouped ? "" : "mt-4"}`}
-              >
-                <div className="w-10 shrink-0">
-                  {!grouped && (
-                    <button onClick={() => p && setViewing(p)}>
-                      <Avatar p={p} />
+              <Fragment key={m.id}>
+                {showDate && (
+                  <div className="my-5 flex items-center gap-3 px-2 text-[11px] font-semibold text-muted-foreground/80">
+                    <span className="h-px flex-1 bg-white/[0.08]" />
+                    <span>
+                      {messageDate.toLocaleDateString("pt-BR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <span className="h-px flex-1 bg-white/[0.08]" />
+                  </div>
+                )}
+                <div
+                  className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-white/[0.04] sm:px-3 ${grouped ? "" : "mt-3"}`}
+                >
+                  <div className="w-10 shrink-0">
+                    {!grouped && (
+                      <button
+                        onClick={() => p && setViewing(p)}
+                        aria-label={`Ver perfil de ${nameOf(p)}`}
+                      >
+                        <Avatar p={p} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {!grouped && (
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <button
+                          onClick={() => p && setViewing(p)}
+                          className="font-semibold text-foreground hover:underline"
+                        >
+                          {nameOf(p)}
+                        </button>
+                        {p?.display_name?.trim() && (
+                          <span className="hidden text-xs text-muted-foreground sm:inline">
+                            @{p.username}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-muted-foreground">
+                          {messageDate.toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {IMG_RE.test(m.content) ? (
+                      <img
+                        src={m.content}
+                        alt=""
+                        className="mt-1 max-h-72 max-w-full rounded-lg border border-white/[0.08]"
+                        loading="lazy"
+                      />
+                    ) : (
+                      m.content && (
+                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[1.45rem] text-[#e4dfea]">
+                          <MessageText
+                            text={m.content}
+                            byName={profilesByUsername}
+                            onMention={setViewing}
+                          />
+                        </p>
+                      )
+                    )}
+                    {m.attachment_url && <Attachment m={m} />}
+                  </div>
+                  {(m.user_id === userId || status?.isAdmin) && (
+                    <button
+                      onClick={() => supabase.from("messages").delete().eq("id", m.id)}
+                      className="rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+                      aria-label="Apagar mensagem"
+                    >
+                      apagar
                     </button>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  {!grouped && (
-                    <div className="flex items-baseline gap-2">
-                      <button
-                        onClick={() => p && setViewing(p)}
-                        className="font-semibold text-foreground hover:underline"
-                      >
-                        {nameOf(p)}
-                      </button>
-                      {p?.display_name?.trim() && (
-                        <span className="hidden text-xs text-muted-foreground sm:inline">
-                          @{p.username}
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(m.created_at).toLocaleString("pt-BR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  {IMG_RE.test(m.content) ? (
-                    <img
-                      src={m.content}
-                      alt=""
-                      className="mt-1 max-h-72 rounded-lg"
-                      loading="lazy"
-                    />
-                  ) : (
-                    m.content && <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                  )}
-                  {m.attachment_url && <Attachment m={m} />}
-                </div>
-                {(m.user_id === userId || status?.isAdmin) && (
-                  <button
-                    onClick={() => supabase.from("messages").delete().eq("id", m.id)}
-                    className="rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
-                    aria-label="Apagar mensagem"
-                  >
-                    apagar
-                  </button>
-                )}
-              </div>
+              </Fragment>
             );
           })}
           <div ref={bottomRef} />
@@ -672,7 +727,7 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#120f1b]/85 px-3 py-2.5 shadow-lg shadow-black/20 transition focus-within:border-primary/50 focus-within:bg-[#171223]">
+            <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-[#16101f] px-3 py-2.5 shadow-lg shadow-black/20 transition focus-within:border-primary/50 focus-within:bg-[#1b1326]">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -725,20 +780,44 @@ export function ChatApp({ userId }: { userId: string }) {
       </main>
 
       {/* Members */}
-      <aside className="hidden w-[240px] shrink-0 overflow-y-auto border-l border-white/[0.05] bg-[#1c1528]/90 px-2.5 py-5 backdrop-blur-xl lg:block">
+      {mobileMembersOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileMembersOpen(false)}
+        />
+      )}
+      <aside
+        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-2xl" : "hidden"} w-72 shrink-0 overflow-y-auto border-l border-white/[0.06] bg-[#171020]/95 px-2.5 py-5 backdrop-blur-xl lg:static lg:block lg:w-[240px] lg:shadow-none`}
+      >
+        <div className="mb-4 flex items-center justify-between px-2 lg:hidden">
+          <span className="text-sm font-bold">Membros</span>
+          <button
+            onClick={() => setMobileMembersOpen(false)}
+            className="rounded p-1 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+            aria-label="Fechar lista de membros"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         <MemberGroup
           title={`Online — ${onlineMembers.length}`}
           members={onlineMembers}
           online={online}
           bannedIds={bannedIds}
-          onSelect={setViewing}
+          onSelect={(p) => {
+            setViewing(p);
+            setMobileMembersOpen(false);
+          }}
         />
         <MemberGroup
           title={`Offline — ${offlineMembers.length}`}
           members={offlineMembers}
           online={online}
           bannedIds={bannedIds}
-          onSelect={setViewing}
+          onSelect={(p) => {
+            setViewing(p);
+            setMobileMembersOpen(false);
+          }}
         />
       </aside>
 
