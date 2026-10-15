@@ -95,8 +95,7 @@ export function EditProfile({
     const { error } = await supabase
       .from("profiles")
       .update({
-        username: draft.username.trim().slice(0, 32) || me.username,
-        bio: draft.bio?.slice(0, 300) ?? null,
+                bio: draft.bio?.slice(0, 300) ?? null,
         avatar_url: draft.avatar_url,
         banner_url: draft.banner_url,
       })
@@ -134,7 +133,6 @@ export function EditProfile({
             <input type="file" accept="image/*" className="sr-only" onChange={(e) => pick("banner", e.target.files?.[0])} />
           </label>
         </div>
-        <Input value={draft.username} onChange={(e) => setDraft({ ...draft, username: e.target.value })} placeholder="Nome" maxLength={32} />
         <Textarea value={draft.bio ?? ""} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} placeholder="Sobre mim" maxLength={300} />
         <Button disabled={busy} onClick={save} className="font-bold">
           {busy ? "Enviando..." : "Salvar"}
