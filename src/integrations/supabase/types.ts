@@ -88,7 +88,9 @@ export type Database = {
           channel_id: string
           content: string
           created_at: string
+          edited_at: string | null
           id: string
+          reply_to: string | null
           user_id: string
         }
         Insert: {
@@ -98,7 +100,9 @@ export type Database = {
           channel_id: string
           content: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          reply_to?: string | null
           user_id: string
         }
         Update: {
@@ -108,7 +112,9 @@ export type Database = {
           channel_id?: string
           content?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          reply_to?: string | null
           user_id?: string
         }
         Relationships: [
@@ -117,6 +123,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
@@ -131,26 +144,47 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banner_color: string | null
           banner_url: string | null
           bio: string | null
           created_at: string
+          custom_status: string | null
+          display_name: string | null
           id: string
+          pronouns: string | null
+          status: string
+          theme_accent: string | null
+          theme_primary: string | null
           username: string
         }
         Insert: {
           avatar_url?: string | null
+          banner_color?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
+          custom_status?: string | null
+          display_name?: string | null
           id: string
+          pronouns?: string | null
+          status?: string
+          theme_accent?: string | null
+          theme_primary?: string | null
           username: string
         }
         Update: {
           avatar_url?: string | null
+          banner_color?: string | null
           banner_url?: string | null
           bio?: string | null
           created_at?: string
+          custom_status?: string | null
+          display_name?: string | null
           id?: string
+          pronouns?: string | null
+          status?: string
+          theme_accent?: string | null
+          theme_primary?: string | null
           username?: string
         }
         Relationships: []
