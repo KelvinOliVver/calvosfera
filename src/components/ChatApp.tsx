@@ -248,7 +248,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   async function createChannel(kind: "text" | "voice", rawName?: string) {
-    const name = (rawName || window.prompt(kind === "text" ? "Nome do novo canal" : "Nome da nova call") ?? "")
+    const name = (rawName || (window.prompt(kind === "text" ? "Nome do novo canal" : "Nome da nova call") ?? ""))
       .trim()
       .toLowerCase()
       .replace(/\s+/g, "-")
