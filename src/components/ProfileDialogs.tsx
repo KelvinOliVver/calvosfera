@@ -107,7 +107,7 @@ export function ProfileCard({
 }) {
   const hasDisplayName = !!p.display_name?.trim();
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#17171c] shadow-2xl shadow-black/40">
+    <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#191324] shadow-2xl shadow-black/40">
       <div className="relative overflow-hidden">
         <div className="h-[118px] w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
@@ -116,8 +116,8 @@ export function ProfileCard({
       </div>
       <div className="px-4 pb-4">
         <div className="-mt-10 mb-3 flex items-end justify-between">
-          <div className="rounded-full bg-[#17171c] p-1.5 shadow-lg shadow-black/30">
-            <Avatar p={p} size={76} status={status} ring="border-[#17171c]" />
+          <div className="rounded-full bg-[#191324] p-1.5 shadow-lg shadow-black/30">
+            <Avatar p={p} size={76} status={status} ring="border-[#191324]" />
           </div>
         </div>
         <div className="flex items-start justify-between gap-3">

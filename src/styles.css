@@ -42,21 +42,21 @@
 
 :root {
   --radius: 0.65rem;
-  --background: oklch(0.145 0.022 282);
-  --foreground: oklch(0.95 0.008 285);
-  --rail: oklch(0.12 0.022 282 / 92%);
-  --panel: oklch(0.17 0.026 282 / 88%);
-  --card: oklch(0.22 0.03 282 / 86%);
+  --background: oklch(0.155 0.035 285);
+  --foreground: oklch(0.95 0.012 285);
+  --rail: oklch(0.125 0.035 285);
+  --panel: oklch(0.175 0.04 285);
+  --card: oklch(0.225 0.045 285);
   --card-foreground: oklch(0.96 0.015 285);
-  --popover: oklch(0.19 0.035 282);
+  --popover: oklch(0.19 0.04 285);
   --popover-foreground: oklch(0.96 0.015 285);
-  --primary: oklch(0.72 0.17 292);
-  --primary-foreground: oklch(0.15 0.03 285);
-  --secondary: oklch(0.7 0.12 265);
+  --primary: oklch(0.69 0.18 292);
+  --primary-foreground: oklch(0.15 0.04 285);
+  --secondary: oklch(0.62 0.15 270);
   --secondary-foreground: oklch(0.97 0.01 285);
-  --muted: oklch(0.24 0.026 282);
-  --muted-foreground: oklch(0.7 0.025 282);
-  --accent: oklch(0.27 0.045 285);
+  --muted: oklch(0.23 0.035 285);
+  --muted-foreground: oklch(0.72 0.025 285);
+  --accent: oklch(0.27 0.055 285);
   --accent-foreground: oklch(0.97 0.01 285);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
@@ -65,12 +65,17 @@
   --dnd: oklch(0.63 0.21 25);
   --mention: oklch(0.8 0.15 80 / 10%);
   --mention-bar: oklch(0.8 0.15 80);
-  --border: oklch(0.8 0.04 285 / 12%);
-  --input: oklch(0.8 0.04 285 / 16%);
-  --ring: oklch(0.72 0.17 292);
-  --gradient-sakura: linear-gradient(135deg, oklch(0.72 0.17 292), oklch(0.65 0.16 270));
+  --border: oklch(0.85 0.04 285 / 12%);
+  --input: oklch(0.12 0.03 285);
+  --ring: oklch(0.69 0.18 292);
+  --gradient-sakura: linear-gradient(
+    135deg,
+    oklch(0.66 0.19 292),
+    oklch(0.46 0.16 270) 55%,
+    oklch(0.34 0.12 310)
+  );
   --shadow-glow:
-    0 24px 70px -24px oklch(0.1 0.07 285 / 85%), 0 0 36px -20px oklch(0.62 0.2 290 / 38%);
+    0 24px 70px -24px oklch(0.07 0.04 285 / 85%), 0 0 36px -20px oklch(0.55 0.2 290 / 32%);
 }
 
 @layer base {
@@ -80,8 +85,14 @@
   body {
     background-color: var(--color-background);
     background-image:
-      radial-gradient(ellipse at 12% 0%, oklch(0.38 0.12 290 / 14%), transparent 38rem),
-      radial-gradient(ellipse at 92% 100%, oklch(0.34 0.1 260 / 12%), transparent 42rem);
+      radial-gradient(ellipse at 8% 0%, oklch(0.34 0.13 292 / 24%), transparent 42rem),
+      radial-gradient(ellipse at 92% 100%, oklch(0.28 0.12 265 / 20%), transparent 46rem),
+      linear-gradient(
+        145deg,
+        oklch(0.17 0.045 290),
+        oklch(0.12 0.035 280) 52%,
+        oklch(0.16 0.055 300)
+      );
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -96,11 +107,16 @@
 @utility bg-sakura {
   background-image: var(--gradient-sakura);
 }
+@utility bg-app-gradient {
+  background-image:
+    radial-gradient(ellipse at 18% 0%, oklch(0.32 0.12 292 / 30%), transparent 38rem),
+    linear-gradient(145deg, oklch(0.18 0.05 290), oklch(0.13 0.04 280) 58%, oklch(0.19 0.06 300));
+}
 @utility shadow-glow {
   box-shadow: var(--shadow-glow);
 }
 @utility glass-panel {
-  background-color: color-mix(in oklab, var(--panel) 86%, transparent);
+  background-color: color-mix(in oklab, var(--panel) 96%, transparent);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
 }
@@ -118,6 +134,20 @@
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+    background-clip: padding-box;
   }
 }
 @utility text-sakura {

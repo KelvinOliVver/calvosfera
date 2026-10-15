@@ -15,6 +15,8 @@ import {
   LogOut,
   Pencil,
   Send,
+  ChevronDown,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +25,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkIn, banUser, unbanUser } from "@/lib/accounts.functions";
 import { getIdentity } from "@/lib/device";
 import { uploadAttachment } from "@/lib/media";
-import { Avatar, EditProfile, ViewProfile, PROFILE_COLS, type Profile } from "./ProfileDialogs";
+import {
+  Avatar,
+  EditProfile,
+  ViewProfile,
+  PROFILE_COLS,
+  nameOf,
+  type Profile,
+} from "./ProfileDialogs";
 
 type Channel = { id: string; name: string; kind: string; position: number };
 type Message = {
@@ -371,6 +380,8 @@ export function ChatApp({ userId }: { userId: string }) {
       ),
     [profiles, online],
   );
+  const onlineMembers = sortedMembers.filter((p) => online.includes(p.id));
+  const offlineMembers = sortedMembers.filter((p) => !online.includes(p.id));
 
   if (status?.banned) {
     return (
@@ -392,37 +403,44 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="bg-app-gradient flex h-dvh min-h-0 overflow-hidden">
       {/* Channels */}
       {navOpen && (
         <div
-          className="fixed inset-0 z-30 bg-background/70 md:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={() => setNavOpen(false)}
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border/70 bg-panel/90 shadow-glow backdrop-blur-2xl transition-transform md:static md:w-64 md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-black/25 bg-[#20172d]/95 shadow-2xl shadow-black/30 backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-start justify-between border-b border-border/70 px-4 py-4">
-          <div>
-            <h1 className="bg-sakura bg-clip-text text-lg tracking-tight text-transparent">
-              Calvosfera
-            </h1>
-            <p className="text-xs text-muted-foreground">カルボスフェラ · servidor</p>
-          </div>
+        <div className="flex h-[58px] items-center gap-3 border-b border-black/20 px-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sakura text-lg font-bold text-white shadow-md shadow-primary/30">
+            C
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate text-sm font-bold text-foreground">Calvosfera</span>
+            <span className="mt-0.5 block text-[11px] text-muted-foreground">
+              Comunidade · {online.length} online
+            </span>
+          </span>
+          <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
           <button
-            className="rounded p-1 hover:bg-accent md:hidden"
+            className="rounded p-1 text-muted-foreground hover:bg-white/[0.08] md:hidden"
             onClick={() => setNavOpen(false)}
             aria-label="Fechar menu"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+        <nav className="flex-1 space-y-6 overflow-y-auto px-2.5 py-5">
           <ChannelGroup
-            title="Texto"
+            title="Canais de texto"
             onAdd={status?.isAdmin ? () => createChannel("text") : undefined}
           >
+            {channels.filter((c) => c.kind === "text").length === 0 && (
+              <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum canal ainda</p>
+            )}
             {channels
               .filter((c) => c.kind === "text")
               .map((c) => (
@@ -435,14 +453,17 @@ export function ChatApp({ userId }: { userId: string }) {
                   }}
                   onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
                 >
-                  <Hash className="h-4 w-4" /> {c.name}
+                  <Hash className="h-[18px] w-[18px]" /> {c.name}
                 </ChannelBtn>
               ))}
           </ChannelGroup>
           <ChannelGroup
-            title="Voz"
+            title="Canais de voz"
             onAdd={status?.isAdmin ? () => createChannel("voice") : undefined}
           >
+            {channels.filter((c) => c.kind === "voice").length === 0 && (
+              <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum canal ainda</p>
+            )}
             {channels
               .filter((c) => c.kind === "voice")
               .map((c) => (
@@ -455,14 +476,14 @@ export function ChatApp({ userId }: { userId: string }) {
                     <Volume2 className="h-4 w-4" /> {c.name}
                   </ChannelBtn>
                   {c.id === voice.channelId && (
-                    <div className="ml-6 mt-1 space-y-1">
+                    <div className="ml-7 mt-1 space-y-1 border-l border-white/10 pl-2">
                       {[userId, ...voice.peers].map((id) => (
                         <div
                           key={id}
-                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                          className="flex items-center gap-2 rounded px-1 py-1 text-xs text-muted-foreground"
                         >
                           <Avatar p={profiles[id]} size={20} />
-                          {profiles[id]?.username ?? "..."}
+                          <span className="truncate">{nameOf(profiles[id])}</span>
                         </div>
                       ))}
                     </div>
@@ -472,10 +493,13 @@ export function ChatApp({ userId }: { userId: string }) {
           </ChannelGroup>
         </nav>
         {voiceCh && (
-          <div className="border-t border-border/70 bg-rail/80 px-3 py-2 backdrop-blur-xl">
-            <p className="text-xs font-bold text-online">Conectado à voz</p>
-            <div className="flex items-center justify-between">
-              <span className="truncate text-sm">{voiceCh.name}</span>
+          <div className="mx-2 mb-2 rounded-lg border border-online/15 bg-online/[0.07] p-2.5">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-online" />
+              <p className="text-xs font-bold text-online">Conectado à voz</p>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-medium">{voiceCh.name}</span>
               <div className="flex gap-1">
                 <IconBtn onClick={voice.toggleMute} label={voice.muted ? "Desmutar" : "Mutar"}>
                   {voice.muted ? (
@@ -491,11 +515,19 @@ export function ChatApp({ userId }: { userId: string }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2 border-t border-border/70 bg-rail/80 px-3 py-2 backdrop-blur-xl">
-          <button onClick={() => me && setViewing(me)}>
-            <Avatar p={me} size={34} status={me?.status ?? "online"} />
+        <div className="flex items-center gap-2 border-t border-white/[0.06] bg-[#191321]/90 px-2.5 py-2">
+          <button
+            onClick={() => me && setViewing(me)}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-white/[0.05]"
+          >
+            <Avatar p={me} size={32} status={me?.status ?? "online"} />
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-bold">{nameOf(me)}</span>
+              <span className="block truncate text-[10px] text-muted-foreground">
+                {status?.isAdmin ? "Administrador" : "Online"}
+              </span>
+            </span>
           </button>
-          <span className="flex-1 truncate text-sm font-bold">{me?.username}</span>
           <IconBtn onClick={() => setEditing(true)} label="Editar perfil">
             <Pencil className="h-4 w-4" />
           </IconBtn>
@@ -506,31 +538,50 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border/70 bg-background/75 px-4 shadow-sm shadow-black/10 backdrop-blur-xl">
+      <main className="flex min-w-0 flex-1 flex-col bg-gradient-to-br from-[#21172f]/95 via-[#191426]/95 to-[#20152d]/95">
+        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.07] bg-[#1b1528]/85 px-4 shadow-sm shadow-black/20 backdrop-blur-xl">
           <button
-            className="-ml-1 rounded p-1.5 hover:bg-accent md:hidden"
+            className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground md:hidden"
             onClick={() => setNavOpen(true)}
             aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Hash className="h-5 w-5 text-muted-foreground" />
-          <span className="font-bold">{activeCh?.name}</span>
-          <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:hidden">
-            <Users className="h-3.5 w-3.5" />
-            {online.length} online
+          <Hash className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <span className="block truncate text-sm font-bold">{activeCh?.name ?? "Canais"}</span>
+            <span className="hidden text-[11px] text-muted-foreground sm:block">
+              Bem-vindo ao canal. Converse e compartilhe com a comunidade.
+            </span>
+          </div>
+          <div className="ml-auto hidden items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs text-muted-foreground lg:flex">
+            <Users className="h-3.5 w-3.5 text-online" />
+            <span>{online.length} online</span>
+          </div>
+          <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:hidden">
+            <Users className="h-3.5 w-3.5 text-online" />
+            {online.length}
           </span>
+          {status?.isAdmin && (
+            <span className="hidden items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary sm:inline-flex">
+              <ShieldCheck className="h-3 w-3" /> Admin
+            </span>
+          )}
         </header>
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto px-2 py-4 sm:px-4">
           {loadingMsgs && (
             <p className="px-4 text-sm text-muted-foreground">Carregando mensagens…</p>
           )}
           {!loadingMsgs && messages.length === 0 && (
-            <div className="px-4 pt-10">
-              <p className="font-display text-2xl">#{activeCh?.name}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ninguém falou nada aqui ainda. Começa você.
+            <div className="mx-2 mt-8 max-w-xl border-t border-white/[0.08] pt-6 sm:mx-4">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-3xl text-primary ring-1 ring-primary/20">
+                <Hash className="h-7 w-7" />
+              </div>
+              <p className="font-sans text-3xl font-extrabold tracking-tight">
+                Boas-vindas a #{activeCh?.name}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Este é o começo do canal. Mande uma mensagem para iniciar a conversa.
               </p>
             </div>
           )}
@@ -540,7 +591,7 @@ export function ChatApp({ userId }: { userId: string }) {
             return (
               <div
                 key={m.id}
-                className={`group mx-2 flex gap-3 rounded-lg px-3 py-1 hover:bg-card/55 ${grouped ? "" : "mt-3"}`}
+                className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-white/[0.045] sm:px-3 ${grouped ? "" : "mt-4"}`}
               >
                 <div className="w-10 shrink-0">
                   {!grouped && (
@@ -554,10 +605,15 @@ export function ChatApp({ userId }: { userId: string }) {
                     <div className="flex items-baseline gap-2">
                       <button
                         onClick={() => p && setViewing(p)}
-                        className="font-bold text-primary hover:underline"
+                        className="font-semibold text-foreground hover:underline"
                       >
-                        {p?.username ?? "..."}
+                        {nameOf(p)}
                       </button>
+                      {p?.display_name?.trim() && (
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                          @{p.username}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {new Date(m.created_at).toLocaleString("pt-BR", {
                           dateStyle: "short",
@@ -581,7 +637,8 @@ export function ChatApp({ userId }: { userId: string }) {
                 {(m.user_id === userId || status?.isAdmin) && (
                   <button
                     onClick={() => supabase.from("messages").delete().eq("id", m.id)}
-                    className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                    className="rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+                    aria-label="Apagar mensagem"
                   >
                     apagar
                   </button>
@@ -615,7 +672,7 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card/80 px-3 py-2 shadow-lg shadow-black/15 backdrop-blur-xl transition focus-within:border-primary/50 focus-within:shadow-primary/10">
+            <div className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#120f1b]/85 px-3 py-2.5 shadow-lg shadow-black/20 transition focus-within:border-primary/50 focus-within:bg-[#171223]">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -668,27 +725,21 @@ export function ChatApp({ userId }: { userId: string }) {
       </main>
 
       {/* Members */}
-      <aside className="hidden w-60 shrink-0 overflow-y-auto border-l border-border/70 bg-panel/80 p-3 backdrop-blur-xl lg:block">
-        <p className="mb-3 px-2 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          Membros — {online.length} online
-        </p>
-        {sortedMembers.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setViewing(p)}
-            className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-accent/70 ${online.includes(p.id) ? "" : "opacity-50"}`}
-          >
-            <Avatar
-              p={p}
-              size={32}
-              status={online.includes(p.id) ? (p.status ?? "online") : "invisible"}
-            />
-            <span className="truncate text-sm">{p.username}</span>
-            {bannedIds.includes(p.id) && (
-              <span className="ml-auto text-[10px] uppercase text-destructive">banido</span>
-            )}
-          </button>
-        ))}
+      <aside className="hidden w-[240px] shrink-0 overflow-y-auto border-l border-white/[0.05] bg-[#1c1528]/90 px-2.5 py-5 backdrop-blur-xl lg:block">
+        <MemberGroup
+          title={`Online — ${onlineMembers.length}`}
+          members={onlineMembers}
+          online={online}
+          bannedIds={bannedIds}
+          onSelect={setViewing}
+        />
+        <MemberGroup
+          title={`Offline — ${offlineMembers.length}`}
+          members={offlineMembers}
+          online={online}
+          bannedIds={bannedIds}
+          onSelect={setViewing}
+        />
       </aside>
 
       <ViewProfile
@@ -769,11 +820,13 @@ function ChannelGroup({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between px-2">
-        <p className="text-xs font-bold uppercase text-muted-foreground">{title}</p>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </p>
         {onAdd && (
           <button
             onClick={onAdd}
-            className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="rounded p-0.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
             aria-label={`Criar ${title}`}
             title="Criar"
           >
@@ -799,24 +852,72 @@ function ChannelBtn({
 }) {
   return (
     <div
-      className={`group/ch flex items-center rounded-md transition ${active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+      className={`group/ch flex min-h-9 items-center rounded-md transition ${active ? "bg-primary/20 text-white shadow-sm shadow-black/10" : "text-[#c0b9cc] hover:bg-white/[0.06] hover:text-white"}`}
     >
       <button
         onClick={onClick}
-        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
+        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-[13px] font-medium"
       >
         {children}
       </button>
       {onDelete && (
         <button
           onClick={onDelete}
-          className="mr-1 rounded p-1 opacity-0 hover:text-destructive group-hover/ch:opacity-100 focus:opacity-100"
+          className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover/ch:opacity-100 focus:opacity-100"
           aria-label="Apagar canal"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       )}
     </div>
+  );
+}
+
+function MemberGroup({
+  title,
+  members,
+  online,
+  bannedIds,
+  onSelect,
+}: {
+  title: string;
+  members: Profile[];
+  online: string[];
+  bannedIds: string[];
+  onSelect: (p: Profile) => void;
+}) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
+      <div className="space-y-0.5">
+        {members.map((p) => {
+          const isOnline = online.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p)}
+              className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left transition hover:bg-white/[0.06] ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
+            >
+              <Avatar
+                p={p}
+                size={32}
+                status={isOnline ? (p.status ?? "online") : "invisible"}
+                ring="border-[#1c1528]"
+              />
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{nameOf(p)}</span>
+              {bannedIds.includes(p.id) && (
+                <span className="text-[9px] font-bold uppercase text-destructive">Banido</span>
+              )}
+            </button>
+          );
+        })}
+        {members.length === 0 && (
+          <p className="px-2 text-xs text-muted-foreground">Ninguém por aqui</p>
+        )}
+      </div>
+    </section>
   );
 }
 
