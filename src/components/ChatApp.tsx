@@ -248,7 +248,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   async function createChannel(kind: "text" | "voice", rawName?: string) {
-    const name = (rawName ?? window.prompt(kind === "text" ? "Nome do novo canal" : "Nome da nova call") ?? "")
+    const name = (rawName || window.prompt(kind === "text" ? "Nome do novo canal" : "Nome da nova call") ?? "")
       .trim()
       .toLowerCase()
       .replace(/\s+/g, "-")
@@ -256,7 +256,10 @@ export function ChatApp({ userId }: { userId: string }) {
     if (!name) return;
     const position = Math.max(0, ...channels.map((c) => c.position)) + 1;
     const { error } = await supabase.from("channels").insert({ name, kind, position });
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await loadChannels();
     toast.success(`${kind === "text" ? "Canal" : "Call"} ${name} criado`);
   }
@@ -265,7 +268,10 @@ export function ChatApp({ userId }: { userId: string }) {
     if (!window.confirm(`Apagar ${c.kind === "text" ? "#" : ""}${c.name}? Tudo nele será perdido.`)) return;
     if (voice.channelId === c.id) voice.leave();
     const { error } = await supabase.from("channels").delete().eq("id", c.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await loadChannels();
   }
 
