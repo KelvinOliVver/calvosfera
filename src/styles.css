@@ -33,6 +33,10 @@
   --color-rail: var(--rail);
   --color-panel: var(--panel);
   --color-online: var(--online);
+  --color-idle: var(--idle);
+  --color-dnd: var(--dnd);
+  --color-mention: var(--mention);
+  --color-mention-bar: var(--mention-bar);
   --color-ring-offset-background: var(--background);
 }
 
@@ -56,7 +60,11 @@
   --accent-foreground: oklch(0.96 0.02 330);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --online: oklch(0.8 0.18 150);
+  --online: oklch(0.72 0.17 150);
+  --idle: oklch(0.8 0.15 80);
+  --dnd: oklch(0.63 0.21 25);
+  --mention: oklch(0.8 0.15 80 / 10%);
+  --mention-bar: oklch(0.8 0.15 80);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.74 0.19 350);
