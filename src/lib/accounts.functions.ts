@@ -117,7 +117,6 @@ export const banUser = createServerFn({ method: "POST" })
     if (ids?.length) {
       await db.from("banned_identifiers").upsert(ids.map((x) => ({ ...x, source_user: data.userId })), { ignoreDuplicates: true });
     }
-    await db.auth.admin.signOut(data.userId).catch(() => {});
     return { ok: true };
   });
 
