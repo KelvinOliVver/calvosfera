@@ -85,11 +85,14 @@ export function Avatar({
   );
 }
 
-function themeStyle(p: Profile): CSSProperties | undefined {
-  if (!p.theme_primary) return undefined;
-  return {
-    background: `linear-gradient(180deg, ${p.theme_primary} 0%, ${p.theme_accent || p.theme_primary} 100%)`,
-  };
+function bannerStyle(p: Profile): CSSProperties {
+  if (p.banner_color) return { background: p.banner_color };
+  if (p.theme_primary) {
+    return {
+      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, #292632), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, #18171d))`,
+    };
+  }
+  return { background: "linear-gradient(120deg, #302a3c, #1e1c26)" };
 }
 
 /** Card de perfil estilo Discord (popout). */
@@ -102,59 +105,73 @@ export function ProfileCard({
   status?: string | null | undefined;
   actions?: ReactNode;
 }) {
-  const themed = !!p.theme_primary;
+  const hasDisplayName = !!p.display_name?.trim();
   return (
-    <div className="w-full overflow-hidden rounded-lg bg-rail p-1" style={themeStyle(p)}>
-      <div className="overflow-hidden rounded-md">
-        <div
-          className="h-[120px] w-full"
-          style={{ background: p.banner_color || "var(--color-accent)" }}
-        >
+    <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#17171c] shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden">
+        <div className="h-[118px] w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/25" />
       </div>
-      <div className="relative px-3 pb-3">
-        <div
-          className="-mt-12 inline-block rounded-full p-1.5"
-          style={{ background: themed ? "transparent" : "var(--color-rail)" }}
-        >
-          <Avatar
-            p={p}
-            size={84}
-            status={status}
-            ring={themed ? "border-transparent" : "border-rail"}
-          />
+      <div className="px-4 pb-4">
+        <div className="-mt-10 mb-3 flex items-end justify-between">
+          <div className="rounded-full bg-[#17171c] p-1.5 shadow-lg shadow-black/30">
+            <Avatar p={p} size={76} status={status} ring="border-[#17171c]" />
+          </div>
         </div>
-        <div
-          className={`mt-2 rounded-lg p-3 ${themed ? "bg-background/70 backdrop-blur" : "bg-panel"}`}
-        >
-          <h3 className="font-sans text-xl font-bold leading-tight">{nameOf(p)}</h3>
-          <p className="text-sm text-muted-foreground">
-            {p.username}
-            {p.pronouns && <span> · {p.pronouns}</span>}
-          </p>
-          {p.custom_status && <p className="mt-2 text-sm">{p.custom_status}</p>}
-          <div className="my-3 h-px bg-border" />
-          {p.bio && (
-            <>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Sobre mim</p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.bio}</p>
-            </>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-sans text-xl font-bold leading-tight tracking-tight text-white">
+              {nameOf(p)}
+            </h3>
+            <p className="mt-0.5 truncate text-sm text-white/55">
+              @{p.username}
+              {p.pronouns && <span className="text-white/40"> · {p.pronouns}</span>}
+            </p>
+          </div>
+          {p.theme_primary && (
+            <span
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white/[0.06]"
+              style={{ background: p.theme_primary }}
+              aria-label="Tema personalizado"
+              title="Tema personalizado"
+            />
           )}
-          {p.created_at && (
-            <>
-              <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Membro desde</p>
-              <p className="mt-1 text-sm">
-                {new Date(p.created_at).toLocaleDateString("pt-BR", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </p>
-            </>
-          )}
-          {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
         </div>
+        {p.custom_status && (
+          <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.035] px-3 py-2.5">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+              {p.custom_status}
+            </p>
+          </div>
+        )}
+        {(p.bio || p.created_at) && <div className="my-4 h-px bg-white/[0.08]" />}
+        {p.bio && (
+          <section className="mb-4">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+              Sobre mim
+            </p>
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+              {p.bio}
+            </p>
+          </section>
+        )}
+        {p.created_at && (
+          <section>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+              Membro desde
+            </p>
+            <p className="text-sm text-white/80">
+              {new Date(p.created_at).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          </section>
+        )}
+        {actions && <div className="mt-4 flex flex-wrap gap-2">{actions}</div>}
       </div>
     </div>
   );
