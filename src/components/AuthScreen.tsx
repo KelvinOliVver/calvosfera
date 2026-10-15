@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+import { registerAccount } from "@/lib/accounts.functions";
+import { getIdentity, usernameToEmail } from "@/lib/device";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import bg from "@/assets/bg.jpg";
 
 export function AuthScreen() {
   const [mode, setMode] = useState<"in" | "up">("in");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,27 +18,17 @@ export function AuthScreen() {
     setBusy(true);
     try {
       if (mode === "up") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin, data: { username } },
-        });
-        if (error) throw error;
-        toast.success("Conta criada! Confirme no seu email para entrar.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const r = await registerAccount({ data: { username, password, ...(await getIdentity()) } });
+        if ("error" in r && r.error) throw new Error(r.error);
       }
+      const login = username.includes("@") ? username.trim() : usernameToEmail(username);
+      const { error } = await supabase.auth.signInWithPassword({ email: login, password });
+      if (error) throw new Error(mode === "in" ? "Nick ou senha incorretos" : error.message);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
       setBusy(false);
     }
-  }
-
-  async function google() {
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) toast.error(String(r.error.message ?? r.error));
   }
 
   return (
@@ -57,13 +47,8 @@ export function AuthScreen() {
             {mode === "in" ? "Entre com sua conta para continuar." : "Crie sua conta. Leva menos de um minuto."}
           </p>
           <form onSubmit={submit} className="mt-8 space-y-4">
-            {mode === "up" && (
-              <Field label="Nome de usuário">
-                <Input value={username} onChange={(e) => setUsername(e.target.value)} required maxLength={32} autoComplete="username" />
-              </Field>
-            )}
-            <Field label="Email">
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            <Field label="Nick">
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} required maxLength={64} autoComplete="username" placeholder="ex: careca_supremo" />
             </Field>
             <Field label="Senha">
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "in" ? "current-password" : "new-password"} />
@@ -72,12 +57,6 @@ export function AuthScreen() {
               {busy ? "Aguarde…" : mode === "in" ? "Entrar" : "Criar conta"}
             </Button>
           </form>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" onClick={google} className="w-full">
-            Continuar com Google
-          </Button>
           <p className="mt-8 text-sm text-muted-foreground">
             {mode === "in" ? "Ainda não tem conta? " : "Já tem conta? "}
             <button onClick={() => setMode(mode === "in" ? "up" : "in")} className="font-medium text-primary hover:underline">
