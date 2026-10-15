@@ -3,6 +3,9 @@ import { Menu, X, Users, Hash, Volume2, Mic, MicOff, PhoneOff, LogOut, Pencil, S
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
+import { useServerFn } from "@tanstack/react-start";
+import { checkIn, banUser, unbanUser } from "@/lib/accounts.functions";
+import { getIdentity } from "@/lib/device";
 import { Avatar, EditProfile, ViewProfile, type Profile } from "./ProfileDialogs";
 
 type Channel = { id: string; name: string; kind: string; position: number };
@@ -23,6 +26,39 @@ export function ChatApp({ userId }: { userId: string }) {
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const voice = useVoice(userId);
+  const [status, setStatus] = useState<{ isAdmin: boolean; banned: boolean; reason: string | null } | null>(null);
+  const [bannedIds, setBannedIds] = useState<string[]>([]);
+  const checkInFn = useServerFn(checkIn);
+  const banFn = useServerFn(banUser);
+  const unbanFn = useServerFn(unbanUser);
+
+  useEffect(() => {
+    getIdentity()
+      .then((ident) => checkInFn({ data: ident }))
+      .then((r) => {
+        setStatus(r);
+        if (r.isAdmin) supabase.from("bans").select("user_id").then(({ data }) => setBannedIds((data ?? []).map((b) => b.user_id)));
+      })
+      .catch(() => setStatus({ isAdmin: false, banned: false, reason: null }));
+  }, [userId]);
+
+  async function toggleBan(p: Profile) {
+    const isBanned = bannedIds.includes(p.id);
+    try {
+      if (isBanned) {
+        await unbanFn({ data: { userId: p.id } });
+        setBannedIds((b) => b.filter((x) => x !== p.id));
+        toast.success(`${p.username} foi desbanido`);
+      } else {
+        const reason = window.prompt(`Motivo do ban de ${p.username}?`) ?? "";
+        await banFn({ data: { userId: p.id, reason } });
+        setBannedIds((b) => [...b, p.id]);
+        toast.success(`${p.username} foi banido`);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
 
   const loadProfiles = async () => {
     const { data } = await supabase.from("profiles").select("id,username,avatar_url,banner_url,bio");
@@ -125,6 +161,18 @@ export function ChatApp({ userId }: { userId: string }) {
       ),
     [profiles, online],
   );
+
+  if (status?.banned) {
+    return (
+      <div className="flex h-screen items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <h1 className="text-2xl">Você foi banido</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{status.reason || "O admin removeu seu acesso à Calvosfera."}</p>
+          <button onClick={() => supabase.auth.signOut()} className="mt-6 text-sm text-primary hover:underline">Sair</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -245,7 +293,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     <p className="whitespace-pre-wrap break-words">{m.content}</p>
                   )}
                 </div>
-                {m.user_id === userId && (
+                {(m.user_id === userId || status?.isAdmin) && (
                   <button
                     onClick={() => supabase.from("messages").delete().eq("id", m.id)}
                     className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
@@ -287,11 +335,25 @@ export function ChatApp({ userId }: { userId: string }) {
           >
             <Avatar p={p} size={32} online={online.includes(p.id)} />
             <span className="truncate text-sm">{p.username}</span>
+            {bannedIds.includes(p.id) && <span className="ml-auto text-[10px] uppercase text-destructive">banido</span>}
           </button>
         ))}
       </aside>
 
-      <ViewProfile p={viewing} onClose={() => setViewing(null)} />
+      <ViewProfile
+        p={viewing}
+        onClose={() => setViewing(null)}
+        actions={
+          status?.isAdmin && viewing && viewing.id !== userId ? (
+            <button
+              onClick={() => toggleBan(viewing)}
+              className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive transition hover:bg-destructive hover:text-destructive-foreground"
+            >
+              {bannedIds.includes(viewing.id) ? "Desbanir" : "Banir"}
+            </button>
+          ) : undefined
+        }
+      />
       {me && (
         <EditProfile
           open={editing}

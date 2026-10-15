@@ -51,12 +51,13 @@ function ProfileCard({ p }: { p: Profile }) {
   );
 }
 
-export function ViewProfile({ p, onClose }: { p: Profile | null; onClose: () => void }) {
+export function ViewProfile({ p, onClose, actions }: { p: Profile | null; onClose: () => void; actions?: React.ReactNode }) {
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="overflow-hidden border-0 p-0">
         <DialogTitle className="sr-only">Perfil</DialogTitle>
         {p && <ProfileCard p={p} />}
+        {p && actions && <div className="flex justify-end gap-2 px-4 pb-4">{actions}</div>}
       </DialogContent>
     </Dialog>
   );
