@@ -16,3 +16,16 @@ export async function uploadMedia(userId: string, file: File, kind: "avatar" | "
   if (e2 || !data) throw e2 ?? new Error("Falha ao gerar link");
   return data.signedUrl;
 }
+
+export async function uploadAttachment(userId: string, file: File) {
+  if (file.size > 50 * 1024 * 1024) throw new Error("Arquivo muito grande (máximo 50MB)");
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+  const path = `${userId}/files/${Date.now()}-${safe}`;
+  const { error } = await supabase.storage.from("media").upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+  });
+  if (error) throw error;
+  const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
+  if (e2 || !data) throw e2 ?? new Error("Falha ao gerar link");
+  return { url: data.signedUrl, type: file.type || "application/octet-stream", name: file.name.slice(0, 200) };
+}
