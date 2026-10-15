@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Hash, Volume2, Mic, MicOff, PhoneOff, LogOut, Pencil, Send } from "lucide-react";
+import { Menu, X, Users, Hash, Volume2, Mic, MicOff, PhoneOff, LogOut, Pencil, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
@@ -19,6 +19,8 @@ export function ChatApp({ userId }: { userId: string }) {
   const [online, setOnline] = useState<string[]>([]);
   const [viewing, setViewing] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const voice = useVoice(userId);
 
@@ -53,13 +55,17 @@ export function ChatApp({ userId }: { userId: string }) {
   useEffect(() => {
     if (!active) return;
     setMessages([]);
+    setLoadingMsgs(true);
     supabase
       .from("messages")
       .select("*")
       .eq("channel_id", active)
       .order("created_at", { ascending: false })
       .limit(100)
-      .then(({ data }) => data && setMessages(data.reverse()));
+      .then(({ data }) => {
+        if (data) setMessages(data.reverse());
+        setLoadingMsgs(false);
+      });
     const ch = supabase
       .channel(`msgs-${active}`)
       .on(
@@ -123,17 +129,21 @@ export function ChatApp({ userId }: { userId: string }) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Channels */}
-      <aside className="flex w-64 shrink-0 flex-col bg-panel">
-        <div className="border-b px-4 py-4">
-          <h1 className="text-xl text-sakura">Calvosfera</h1>
-          <p className="text-xs text-muted-foreground">servidor oficial ✦ ハゲ</p>
+      {navOpen && <div className="fixed inset-0 z-30 bg-background/70 md:hidden" onClick={() => setNavOpen(false)} />}
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col bg-panel transition-transform md:static md:w-64 md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-start justify-between border-b px-4 py-4">
+          <div>
+          <h1 className="text-lg tracking-tight">Calvosfera</h1>
+          <p className="text-xs text-muted-foreground">カルボスフェラ · servidor</p>
+          </div>
+          <button className="rounded p-1 hover:bg-accent md:hidden" onClick={() => setNavOpen(false)} aria-label="Fechar menu"><X className="h-4 w-4" /></button>
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto p-3">
           <ChannelGroup title="Texto">
             {channels
               .filter((c) => c.kind === "text")
               .map((c) => (
-                <ChannelBtn key={c.id} active={c.id === active} onClick={() => setActive(c.id)}>
+                <ChannelBtn key={c.id} active={c.id === active} onClick={() => { setActive(c.id); setNavOpen(false); }}>
                   <Hash className="h-4 w-4" /> {c.name}
                 </ChannelBtn>
               ))}
@@ -162,7 +172,7 @@ export function ChatApp({ userId }: { userId: string }) {
         </nav>
         {voiceCh && (
           <div className="border-t bg-rail px-3 py-2">
-            <p className="text-xs font-bold text-online">Em call</p>
+            <p className="text-xs font-bold text-online">Conectado à voz</p>
             <div className="flex items-center justify-between">
               <span className="truncate text-sm">{voiceCh.name}</span>
               <div className="flex gap-1">
@@ -192,16 +202,25 @@ export function ChatApp({ userId }: { userId: string }) {
 
       {/* Chat */}
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-2 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <button className="-ml-1 rounded p-1.5 hover:bg-accent md:hidden" onClick={() => setNavOpen(true)} aria-label="Abrir menu"><Menu className="h-5 w-5" /></button>
           <Hash className="h-5 w-5 text-muted-foreground" />
           <span className="font-bold">{activeCh?.name}</span>
+          <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:hidden"><Users className="h-3.5 w-3.5" />{online.length} online</span>
         </header>
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto py-4">
+          {loadingMsgs && <p className="px-4 text-sm text-muted-foreground">Carregando mensagens…</p>}
+          {!loadingMsgs && messages.length === 0 && (
+            <div className="px-4 pt-10">
+              <p className="font-display text-2xl">#{activeCh?.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Ninguém falou nada aqui ainda. Começa você.</p>
+            </div>
+          )}
           {messages.map((m, i) => {
             const p = profiles[m.user_id];
             const grouped = i > 0 && messages[i - 1]?.user_id === m.user_id;
             return (
-              <div key={m.id} className={`group flex gap-3 ${grouped ? "-mt-3" : ""}`}>
+              <div key={m.id} className={`group flex gap-3 px-4 py-0.5 hover:bg-card/50 ${grouped ? "" : "mt-3"}`}>
                 <div className="w-10 shrink-0">
                   {!grouped && (
                     <button onClick={() => p && setViewing(p)}>
@@ -239,16 +258,16 @@ export function ChatApp({ userId }: { userId: string }) {
           })}
           <div ref={bottomRef} />
         </div>
-        <form onSubmit={send} className="p-4">
-          <div className="flex items-center gap-2 rounded-xl bg-card px-4 py-2">
+        <form onSubmit={send} className="shrink-0 px-4 pb-4">
+          <div className="flex items-center gap-2 rounded-lg border border-transparent bg-card px-4 py-2 focus-within:border-primary/50">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`Conversar em #${activeCh?.name ?? ""} (cole link de GIF pra mandar)`}
+              placeholder={`Conversar em #${activeCh?.name ?? ""} `}
               className="flex-1 bg-transparent py-1 outline-none placeholder:text-muted-foreground"
               maxLength={2000}
             />
-            <button type="submit" className="text-primary" aria-label="Enviar">
+            <button type="submit" disabled={!text.trim()} className="rounded p-1 text-primary transition disabled:text-muted-foreground" aria-label="Enviar">
               <Send className="h-5 w-5" />
             </button>
           </div>

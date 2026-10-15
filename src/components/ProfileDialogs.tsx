@@ -21,7 +21,7 @@ export function Avatar({ p, size = 40, online }: { p?: Profile | undefined; size
       {p?.avatar_url ? (
         <img src={p.avatar_url} alt={p.username} className="h-full w-full rounded-full object-cover" />
       ) : (
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-sakura font-bold text-primary-foreground">
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-accent font-bold text-primary">
           {(p?.username ?? "?").slice(0, 1).toUpperCase()}
         </div>
       )}
@@ -37,7 +37,7 @@ export function Avatar({ p, size = 40, online }: { p?: Profile | undefined; size
 function ProfileCard({ p }: { p: Profile }) {
   return (
     <div className="overflow-hidden rounded-xl bg-card">
-      <div className="h-32 bg-sakura">
+      <div className="h-32 bg-accent">
         {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
       </div>
       <div className="px-4 pb-4">
@@ -107,7 +107,7 @@ export function EditProfile({
     }
     onSaved(draft);
     onOpenChange(false);
-    toast.success("Perfil salvo ✦");
+    toast.success("Perfil salvo");
   }
 
   return (
@@ -124,18 +124,18 @@ export function EditProfile({
         </DialogHeader>
         <ProfileCard p={draft} />
         <div className="grid grid-cols-2 gap-2">
-          <label className="cursor-pointer rounded-md border px-3 py-2 text-center text-sm hover:bg-accent">
+          <label className="cursor-pointer rounded-md border px-3 py-2 text-center text-sm transition hover:bg-accent focus-within:ring-2 focus-within:ring-ring">
             Foto / GIF
-            <input type="file" accept="image/*" hidden onChange={(e) => pick("avatar", e.target.files?.[0])} />
+            <input type="file" accept="image/*" className="sr-only" onChange={(e) => pick("avatar", e.target.files?.[0])} />
           </label>
-          <label className="cursor-pointer rounded-md border px-3 py-2 text-center text-sm hover:bg-accent">
+          <label className="cursor-pointer rounded-md border px-3 py-2 text-center text-sm transition hover:bg-accent focus-within:ring-2 focus-within:ring-ring">
             Banner / GIF
-            <input type="file" accept="image/*" hidden onChange={(e) => pick("banner", e.target.files?.[0])} />
+            <input type="file" accept="image/*" className="sr-only" onChange={(e) => pick("banner", e.target.files?.[0])} />
           </label>
         </div>
         <Input value={draft.username} onChange={(e) => setDraft({ ...draft, username: e.target.value })} placeholder="Nome" maxLength={32} />
         <Textarea value={draft.bio ?? ""} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} placeholder="Sobre mim" maxLength={300} />
-        <Button disabled={busy} onClick={save} className="bg-sakura font-bold text-primary-foreground">
+        <Button disabled={busy} onClick={save} className="font-bold">
           {busy ? "Enviando..." : "Salvar"}
         </Button>
       </DialogContent>
