@@ -7,7 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { checkIn, banUser, unbanUser } from "@/lib/accounts.functions";
 import { getIdentity } from "@/lib/device";
 import { uploadAttachment } from "@/lib/media";
-import { Avatar, EditProfile, ViewProfile, type Profile } from "./ProfileDialogs";
+import { Avatar, EditProfile, ViewProfile, PROFILE_COLS, type Profile } from "./ProfileDialogs";
 
 type Channel = { id: string; name: string; kind: string; position: number };
 type Message = {
@@ -88,7 +88,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   const loadProfiles = async () => {
-    const { data } = await supabase.from("profiles").select("id,username,avatar_url,banner_url,bio");
+    const { data } = await supabase.from("profiles").select(PROFILE_COLS);
     if (data) setProfiles(Object.fromEntries(data.map((p) => [p.id, p])));
   };
 
@@ -396,7 +396,7 @@ export function ChatApp({ userId }: { userId: string }) {
         )}
         <div className="flex items-center gap-2 bg-rail px-3 py-2">
           <button onClick={() => me && setViewing(me)}>
-            <Avatar p={me} size={34} online />
+            <Avatar p={me} size={34} status={me?.status ?? "online"} />
           </button>
           <span className="flex-1 truncate text-sm font-bold">{me?.username}</span>
           <IconBtn onClick={() => setEditing(true)} label="Editar perfil">
@@ -528,7 +528,7 @@ export function ChatApp({ userId }: { userId: string }) {
             onClick={() => setViewing(p)}
             className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent ${online.includes(p.id) ? "" : "opacity-50"}`}
           >
-            <Avatar p={p} size={32} online={online.includes(p.id)} />
+            <Avatar p={p} size={32} status={online.includes(p.id) ? (p.status ?? "online") : "invisible"} />
             <span className="truncate text-sm">{p.username}</span>
             {bannedIds.includes(p.id) && <span className="ml-auto text-[10px] uppercase text-destructive">banido</span>}
           </button>
@@ -555,6 +555,7 @@ export function ChatApp({ userId }: { userId: string }) {
           onOpenChange={setEditing}
           me={me}
           onSaved={(p) => setProfiles((all) => ({ ...all, [p.id]: p }))}
+          onLogout={() => supabase.auth.signOut()}
         />
       )}
     </div>
