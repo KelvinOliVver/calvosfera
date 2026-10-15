@@ -82,6 +82,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
           channel_id: string
           content: string
           created_at: string
@@ -89,6 +92,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel_id: string
           content: string
           created_at?: string
@@ -96,6 +102,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel_id?: string
           content?: string
           created_at?: string
@@ -143,6 +152,27 @@ export type Database = {
           created_at?: string
           id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      timeouts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          until: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          until: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          until?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -198,6 +228,7 @@ export type Database = {
         Returns: boolean
       }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
+      is_timed_out: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
