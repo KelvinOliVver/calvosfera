@@ -235,7 +235,8 @@ function bannerStyle(p: Profile): CSSProperties {
       background: `linear-gradient(125deg, color-mix(in srgb, ${p.banner_color || p.theme_primary} 64%, ${p.theme_primary}), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 44%, var(--rail)) 58%, color-mix(in srgb, ${p.theme_primary} 18%, var(--panel)))`,
     };
   }
-  if (p.banner_color) return { background: `linear-gradient(135deg, ${p.banner_color}, var(--rail))` };
+  if (p.banner_color)
+    return { background: `linear-gradient(135deg, ${p.banner_color}, var(--rail))` };
   return { background: "var(--gradient-sakura)" };
 }
 
@@ -275,13 +276,18 @@ export function ProfileCard({
   return (
     <div
       className="profile-card w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-glow"
-      style={{
-        "--profile-accent": p.theme_primary || "var(--primary)",
-        "--profile-secondary": p.theme_accent || p.theme_primary || "var(--secondary)",
-      } as CSSProperties}
+      style={
+        {
+          "--profile-accent": p.theme_primary || "var(--primary)",
+          "--profile-secondary": p.theme_accent || p.theme_primary || "var(--secondary)",
+        } as CSSProperties
+      }
     >
       <div className="profile-card-banner relative overflow-hidden">
-        <div className={`h-36 w-full ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(p)}>
+        <div
+          className={`h-36 w-full ${profileEffectClass(extras.profile_effect)}`}
+          style={bannerStyle(p)}
+        >
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
         <div aria-hidden="true" className="absolute inset-0" style={bannerTintStyle(p)} />
@@ -306,7 +312,9 @@ export function ProfileCard({
         }}
       >
         <div className="relative -mt-11 mb-3 flex items-end justify-between">
-          <div className={`rounded-full ring-4 ring-popover ${avatarFrameClass(extras.avatar_frame)}`}>
+          <div
+            className={`rounded-full ring-4 ring-popover ${avatarFrameClass(extras.avatar_frame)}`}
+          >
             <Avatar p={p} size={84} status={presence} ring="border-popover" />
           </div>
           <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-2.5 py-1 text-[11px] font-medium text-foreground/85">
@@ -318,10 +326,12 @@ export function ProfileCard({
           <div className="min-w-0">
             <h3
               className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
-              style={{
-                "--profile-name-start": p.theme_primary || "var(--foreground)",
-                "--profile-name-end": p.theme_accent || p.theme_primary || "var(--foreground)",
-              } as CSSProperties}
+              style={
+                {
+                  "--profile-name-start": p.theme_primary || "var(--foreground)",
+                  "--profile-name-end": p.theme_accent || p.theme_primary || "var(--foreground)",
+                } as CSSProperties
+              }
             >
               {nameOf(p)}
             </h3>
@@ -368,7 +378,11 @@ export function ProfileCard({
             </p>
           </div>
         )}
-        {(p.bio || p.created_at || extras.connections.length > 0 || extras.widgets.length > 0 || extras.wishlist.length > 0) && <div className="my-4 h-px bg-border" />}
+        {(p.bio ||
+          p.created_at ||
+          extras.connections.length > 0 ||
+          extras.widgets.length > 0 ||
+          extras.wishlist.length > 0) && <div className="my-4 h-px bg-border" />}
         {p.bio && (
           <section className="mb-4 rounded-xl border border-border/80 bg-background/35 p-3.5">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -475,11 +489,299 @@ export function ViewProfile({
   actions?: ReactNode;
   status?: string | null | undefined;
 }) {
+  const [tab, setTab] = useState<"wall" | "activity" | "wishlist">("wall");
+  const extras = profileExtras(p?.profile_extras);
+  const presence = (status ?? p?.status ?? "invisible") as Status;
+
+  useEffect(() => {
+    setTab("wall");
+  }, [p?.id]);
+
+  async function copyHandle() {
+    if (!p) return;
+    try {
+      await navigator.clipboard.writeText(`@${p.username}`);
+      toast.success("Nome de usuário copiado.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o nome de usuário manualmente.");
+    }
+  }
+
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90dvh] max-w-[380px] gap-0 overflow-y-auto border-0 bg-transparent p-0 shadow-glow [&>button]:right-3 [&>button]:top-3 [&>button]:z-20 [&>button]:rounded-full [&>button]:bg-black/45 [&>button]:p-2 [&>button]:text-white [&>button]:backdrop-blur-sm">
+      <DialogContent className="w-[min(960px,calc(100vw-24px))] max-w-none gap-0 overflow-hidden rounded-2xl border border-border bg-panel p-0 shadow-2xl [&>button]:right-3 [&>button]:top-3 [&>button]:z-30 [&>button]:rounded-lg [&>button]:border [&>button]:border-white/10 [&>button]:bg-black/35 [&>button]:p-2 [&>button]:text-white [&>button]:opacity-100 [&>button]:backdrop-blur-sm">
         <DialogTitle className="sr-only">Perfil de {p ? nameOf(p) : ""}</DialogTitle>
-        {p && <ProfileCard p={p} status={status} actions={actions} />}
+        {p && (
+          <div className="flex max-h-[88dvh] min-h-[min(600px,80dvh)] flex-col overflow-hidden md:flex-row">
+            <section className="min-h-0 max-h-[40dvh] w-full shrink-0 overflow-y-auto border-b border-border bg-popover md:max-h-none md:w-[390px] md:border-b-0 md:border-r">
+              <div className="relative h-44 overflow-hidden" style={bannerStyle(p)}>
+                {p.banner_url && (
+                  <img
+                    src={p.banner_url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+                <div className={`absolute inset-0 ${profileEffectClass(extras.profile_effect)}`} />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-black/65" />
+                <div
+                  className="absolute inset-x-0 bottom-0 h-1"
+                  style={{
+                    background: `linear-gradient(90deg, ${p.theme_primary || "var(--primary)"}, ${p.theme_accent || p.theme_primary || "var(--secondary)"}, transparent)`,
+                  }}
+                />
+                <span className="absolute bottom-3 left-4 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-sm">
+                  CALVOSFERA
+                </span>
+              </div>
+              <div className="px-5 pb-5">
+                <div className="-mt-10 mb-3 flex items-end justify-between">
+                  <div
+                    className={`rounded-full bg-popover p-1.5 ${avatarFrameClass(extras.avatar_frame)}`}
+                  >
+                    <Avatar p={p} size={76} status={presence} ring="border-popover" />
+                  </div>
+                  <span className="mb-1 inline-flex items-center gap-2 rounded-full border border-border bg-background/85 px-2.5 py-1 text-[11px] font-medium text-foreground/85">
+                    <span className={`h-2 w-2 rounded-full ${dotClass(presence)}`} />
+                    {STATUS_LABEL[presence] ?? STATUS_LABEL.invisible}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2
+                      className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+                      style={
+                        {
+                          "--profile-name-start": p.theme_primary || "var(--foreground)",
+                          "--profile-name-end":
+                            p.theme_accent || p.theme_primary || "var(--foreground)",
+                        } as CSSProperties
+                      }
+                    >
+                      {nameOf(p)}
+                    </h2>
+                    <p className="mt-1 break-all text-sm text-muted-foreground">
+                      @{p.username}
+                      {p.pronouns ? ` · ${p.pronouns}` : ""}
+                    </p>
+                  </div>
+                  {extras.badge && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      {extras.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copyHandle()}
+                    className="h-8 gap-1.5 rounded-lg px-2.5 text-xs"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar usuário
+                  </Button>
+                  {actions}
+                </div>
+                <div className="my-4 h-px bg-border" />
+                {p.custom_status && (
+                  <section className="mb-3 rounded-xl border border-border bg-background/45 p-3.5">
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Status
+                    </p>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                      {p.custom_status}
+                    </p>
+                  </section>
+                )}
+                {p.bio ? (
+                  <section className="mb-3 rounded-xl border border-border bg-background/45 p-3.5">
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Sobre mim
+                    </p>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+                      {p.bio}
+                    </p>
+                  </section>
+                ) : (
+                  <section className="mb-3 rounded-xl border border-border bg-background/35 p-3.5">
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Sobre mim
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Este membro ainda não adicionou uma apresentação.
+                    </p>
+                  </section>
+                )}
+                {p.created_at && (
+                  <section className="mb-3 flex items-center gap-3 rounded-xl border border-border bg-background/35 p-3.5">
+                    <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Na Calvosfera desde
+                      </p>
+                      <p className="mt-0.5 text-sm font-medium">
+                        {new Date(p.created_at).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  </section>
+                )}
+                {extras.connections.length > 0 && (
+                  <section className="rounded-xl border border-border bg-background/35 p-3.5">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Conexões
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {extras.connections.map((connection) => {
+                        const url = safeExternalUrl(connection.url);
+                        return url ? (
+                          <a
+                            key={connection.id}
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-xs text-foreground/85 transition hover:bg-accent"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {connection.label}
+                          </a>
+                        ) : null;
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </section>
+
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-panel">
+              <header className="border-b border-border px-5 pb-0 pt-5 md:px-7">
+                <p className="text-sm font-semibold">Espaço de {nameOf(p)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Conteúdo que este membro escolheu compartilhar.
+                </p>
+                <div
+                  role="tablist"
+                  aria-label="Conteúdo do perfil"
+                  className="mt-5 flex gap-6 overflow-x-auto"
+                >
+                  {(
+                    [
+                      ["wall", "Mural"],
+                      ["activity", "Atividade"],
+                      ["wishlist", "Lista de desejos"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === key}
+                      onClick={() => setTab(key)}
+                      className={`relative shrink-0 pb-3 text-sm font-semibold transition ${tab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {label}
+                      {tab === key && (
+                        <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7" role="tabpanel">
+                {tab === "wall" && (
+                  <>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Widgets do perfil
+                    </p>
+                    {extras.widgets.length ? (
+                      <div className="space-y-3">
+                        {extras.widgets.map((widget) => {
+                          const url = safeExternalUrl(widget.url);
+                          return (
+                            <article
+                              key={widget.id}
+                              className="overflow-hidden rounded-xl border border-border bg-background/45"
+                            >
+                              <div className="border-b border-border bg-gradient-to-r from-primary/10 via-secondary/10 to-transparent px-4 py-3">
+                                <h3 className="text-sm font-semibold">{widget.title}</h3>
+                              </div>
+                              <div className="p-4">
+                                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                                  {widget.description}
+                                </p>
+                                {url && (
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    Abrir conexão
+                                  </a>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
+                        <LayoutGrid className="h-6 w-6 text-muted-foreground" />
+                        <p className="mt-3 text-sm font-medium">Mural vazio</p>
+                        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                          Quando {nameOf(p)} adicionar widgets ao perfil, eles aparecerão aqui.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                {tab === "activity" && (
+                  <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
+                    <Activity className="h-6 w-6 text-muted-foreground" />
+                    <p className="mt-3 text-sm font-medium">Atividade não compartilhada</p>
+                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                      As atividades só aparecem aqui quando houver dados disponíveis e o membro
+                      decidir compartilhá-las.
+                    </p>
+                  </div>
+                )}
+                {tab === "wishlist" && (
+                  <>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Lista de desejos
+                    </p>
+                    {extras.wishlist.length ? (
+                      <ul className="space-y-2">
+                        {extras.wishlist.map((item, index) => (
+                          <li
+                            key={`${item}-${index}`}
+                            className="flex items-center gap-3 rounded-xl border border-border bg-background/45 px-4 py-3 text-sm"
+                          >
+                            <Heart className="h-4 w-4 shrink-0 text-primary" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
+                        <Heart className="h-6 w-6 text-muted-foreground" />
+                        <p className="mt-3 text-sm font-medium">Lista ainda vazia</p>
+                        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                          Os itens que {nameOf(p)} escolher compartilhar aparecerão aqui.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -916,7 +1218,9 @@ export function EditProfile({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-foreground">Aparência</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Gradientes, faixa e detalhes visuais.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Gradientes, faixa e detalhes visuais.
+                    </p>
                   </div>
                   <Palette className="h-4 w-4 text-white/45" />
                 </div>
@@ -1048,13 +1352,15 @@ export function EditProfile({
                   Escolha uma camada visual sutil. Ela aparece na prévia e no perfil público.
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {([
-                    ["none", "Sem efeito", "Visual limpo"],
-                    ["aurora", "Aurora", "Luzes fluidas"],
-                    ["sakura", "Pétalas", "Brilho rosado"],
-                    ["holographic", "Irisado", "Reflexos de cor"],
-                    ["ember", "Brasa", "Luz quente"],
-                  ] as const).map(([effect, label, description]) => (
+                  {(
+                    [
+                      ["none", "Sem efeito", "Visual limpo"],
+                      ["aurora", "Aurora", "Luzes fluidas"],
+                      ["sakura", "Pétalas", "Brilho rosado"],
+                      ["holographic", "Irisado", "Reflexos de cor"],
+                      ["ember", "Brasa", "Luz quente"],
+                    ] as const
+                  ).map(([effect, label, description]) => (
                     <button
                       key={effect}
                       type="button"
@@ -1062,9 +1368,14 @@ export function EditProfile({
                       onClick={() => setExtras({ profile_effect: effect })}
                       className={`rounded-lg border p-2 text-left transition ${extras.profile_effect === effect ? "border-primary/60 bg-primary/10" : "border-border bg-panel hover:bg-accent"}`}
                     >
-                      <span className={`mb-2 block h-5 rounded ${profileEffectClass(effect)}`} style={bannerStyle(draft)} />
+                      <span
+                        className={`mb-2 block h-5 rounded ${profileEffectClass(effect)}`}
+                        style={bannerStyle(draft)}
+                      />
                       <span className="block text-xs font-semibold">{label}</span>
-                      <span className="mt-0.5 block text-[10px] text-muted-foreground">{description}</span>
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        {description}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -1074,7 +1385,9 @@ export function EditProfile({
             <div id="profile-about" className="scroll-mt-4 space-y-3 border-t border-border pt-4">
               <div className="pb-1">
                 <p className="text-sm font-semibold text-foreground">Sobre você</p>
-                <p className="mt-1 text-xs text-muted-foreground">Defina o que aparece junto ao seu nome.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Defina o que aparece junto ao seu nome.
+                </p>
               </div>
               <p className="text-xs text-muted-foreground">
                 Adicione detalhes para as pessoas conhecerem você melhor.
@@ -1170,7 +1483,10 @@ export function EditProfile({
             </span>
           </div>
           <div className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-black/50">
-            <div className={`relative h-44 overflow-hidden ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(draft)}>
+            <div
+              className={`relative h-44 overflow-hidden ${profileEffectClass(extras.profile_effect)}`}
+              style={bannerStyle(draft)}
+            >
               {draft.banner_url ? (
                 <img src={draft.banner_url} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -1232,10 +1548,13 @@ export function EditProfile({
                 <>
                   <h1
                     className="profile-name-gradient font-sans text-2xl font-bold tracking-tight"
-                    style={{
-                      "--profile-name-start": draft.theme_primary || "var(--foreground)",
-                      "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
-                    } as CSSProperties}
+                    style={
+                      {
+                        "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                        "--profile-name-end":
+                          draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                      } as CSSProperties
+                    }
                   >
                     {nameOf(draft)}
                   </h1>
