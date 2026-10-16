@@ -350,6 +350,13 @@ html[data-theme="amoled"] .server-rail { background: #000; }
   position: relative;
   isolation: isolate;
 }
+.profile-name-gradient {
+  color: var(--profile-name-start);
+  background-image: linear-gradient(100deg, var(--profile-name-start), var(--profile-name-end));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .profile-effect::before,
 .profile-effect::after {
   position: absolute;

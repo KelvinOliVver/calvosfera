@@ -239,6 +239,14 @@ function bannerStyle(p: Profile): CSSProperties {
   return { background: "var(--gradient-sakura)" };
 }
 
+function bannerTintStyle(p: Profile): CSSProperties {
+  const primary = p.theme_primary || "var(--primary)";
+  const accent = p.theme_accent || p.theme_primary || "var(--secondary)";
+  return {
+    background: `linear-gradient(115deg, color-mix(in srgb, ${primary} 34%, transparent), color-mix(in srgb, ${accent} 24%, transparent) 55%, transparent)`,
+  };
+}
+
 function profileEffectClass(effect: ProfileEffect) {
   return effect === "none" ? "" : `profile-effect profile-effect-${effect}`;
 }
@@ -267,12 +275,16 @@ export function ProfileCard({
   return (
     <div
       className="profile-card w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-glow"
-      style={{ "--profile-accent": p.theme_primary || "var(--primary)" } as CSSProperties}
+      style={{
+        "--profile-accent": p.theme_primary || "var(--primary)",
+        "--profile-secondary": p.theme_accent || p.theme_primary || "var(--secondary)",
+      } as CSSProperties}
     >
       <div className="profile-card-banner relative overflow-hidden">
         <div className={`h-36 w-full ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
+        <div aria-hidden="true" className="absolute inset-0" style={bannerTintStyle(p)} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
         <div
           aria-hidden="true"
@@ -283,7 +295,12 @@ export function ProfileCard({
           <Sparkles className="h-3 w-3" /> PERFIL DA CALVOSFERA
         </div>
       </div>
-      <div className="px-4 pb-4">
+      <div
+        className="profile-card-content px-4 pb-4"
+        style={{
+          background: `linear-gradient(180deg, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 22%, var(--popover)) 0%, color-mix(in srgb, ${p.theme_accent || p.theme_primary || "var(--secondary)"} 10%, var(--popover)) 34%, var(--popover) 72%)`,
+        }}
+      >
         <div className="relative -mt-11 mb-3 flex items-end justify-between">
           <div className={`rounded-full ring-4 ring-popover ${avatarFrameClass(extras.avatar_frame)}`}>
             <Avatar p={p} size={84} status={presence} ring="border-popover" />
@@ -295,7 +312,13 @@ export function ProfileCard({
         </div>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="break-words font-display text-2xl font-bold leading-tight tracking-tight text-foreground">
+            <h3
+              className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+              style={{
+                "--profile-name-start": p.theme_primary || "var(--foreground)",
+                "--profile-name-end": p.theme_accent || p.theme_primary || "var(--foreground)",
+              } as CSSProperties}
+            >
               {nameOf(p)}
             </h3>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
@@ -1153,6 +1176,7 @@ export function EditProfile({
                   className="h-full w-full object-cover opacity-35 mix-blend-screen"
                 />
               )}
+              <div aria-hidden="true" className="absolute inset-0" style={bannerTintStyle(draft)} />
               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
               <div
                 className="absolute inset-x-0 bottom-0 h-1"
@@ -1197,7 +1221,15 @@ export function EditProfile({
               </div>
               {tab === "profile" ? (
                 <>
-                  <h1 className="font-sans text-2xl font-bold tracking-tight">{nameOf(draft)}</h1>
+                  <h1
+                    className="profile-name-gradient font-sans text-2xl font-bold tracking-tight"
+                    style={{
+                      "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                      "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                    } as CSSProperties}
+                  >
+                    {nameOf(draft)}
+                  </h1>
                   <p className="mt-1 text-sm text-white/55">
                     @{draft.username}
                     {draft.pronouns && ` · ${draft.pronouns}`}
