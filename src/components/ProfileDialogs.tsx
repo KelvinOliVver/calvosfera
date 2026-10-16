@@ -402,6 +402,13 @@ const SWATCHES = [
   "#2c2f33",
 ];
 
+const PROFILE_PALETTES = [
+  { name: "Sakura", primary: "#f47fb0", accent: "#9b59b6", banner: "#39202f" },
+  { name: "Aurora", primary: "#54d6b4", accent: "#5865f2", banner: "#152d35" },
+  { name: "Pôr do sol", primary: "#ffad73", accent: "#ed5b86", banner: "#382323" },
+  { name: "Noite", primary: "#a991ff", accent: "#55c9d8", banner: "#211d3d" },
+];
+
 function ColorField({
   label,
   value,
@@ -806,6 +813,39 @@ export function EditProfile({
                   Remover faixa
                 </button>
               )}
+              <div className="space-y-2 pt-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
+                  Paletas rápidas
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROFILE_PALETTES.map((palette) => (
+                    <button
+                      key={palette.name}
+                      type="button"
+                      onClick={() =>
+                        set({
+                          theme_primary: palette.primary,
+                          theme_accent: palette.accent,
+                          banner_color: palette.banner,
+                        })
+                      }
+                      className="group flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#1b1b1e] px-2.5 py-2 text-left text-xs text-white/70 transition hover:border-white/20 hover:bg-white/[0.06]"
+                    >
+                      <span className="flex -space-x-1.5">
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/30"
+                          style={{ background: palette.primary }}
+                        />
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/30"
+                          style={{ background: palette.accent }}
+                        />
+                      </span>
+                      <span className="truncate group-hover:text-white">{palette.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -915,13 +955,23 @@ export function EditProfile({
             }}
           />
           <div className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-t-[18px] border border-white/[0.1] bg-[#0c0909]/95 shadow-2xl shadow-black/50">
-            <div className="relative h-44 overflow-hidden bg-[#21161a]">
-              <img
-                src={draft.banner_url || cityBanner}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+            <div className="relative h-44 overflow-hidden" style={bannerStyle(draft)}>
+              {draft.banner_url ? (
+                <img src={draft.banner_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <img
+                  src={cityBanner}
+                  alt=""
+                  className="h-full w-full object-cover opacity-35 mix-blend-screen"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+              <div
+                className="absolute inset-x-0 bottom-0 h-1"
+                style={{
+                  background: draft.theme_accent || draft.theme_primary || "var(--primary)",
+                }}
+              />
               <button
                 onClick={() => document.getElementById("profile-banner-upload")?.click()}
                 className="absolute right-3 top-3 rounded-md bg-black/45 p-2 text-white/80 hover:bg-black/70"

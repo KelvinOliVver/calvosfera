@@ -484,7 +484,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-dvh min-h-0 overflow-hidden bg-[#222328] text-foreground">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground">
       {/* Channels */}
       {navOpen && (
         <div
@@ -492,7 +492,7 @@ export function ChatApp({ userId }: { userId: string }) {
           onClick={() => setNavOpen(false)}
         />
       )}
-      <aside className="hidden w-[64px] shrink-0 flex-col items-center gap-3 border-r border-white/[0.04] bg-[#17181c] py-3 md:flex">
+      <aside className="hidden w-[64px] shrink-0 flex-col items-center gap-3 border-r border-border bg-rail py-3 md:flex">
         <div
           title="Calvosfera"
           aria-current="page"
@@ -502,9 +502,9 @@ export function ChatApp({ userId }: { userId: string }) {
         </div>
       </aside>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-white/[0.06] bg-[#1c1d22] transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-panel transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex h-[58px] items-center gap-3 border-b border-white/[0.06] px-4">
+        <div className="flex h-[58px] items-center gap-3 border-b border-border px-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
             C
           </span>
@@ -523,7 +523,7 @@ export function ChatApp({ userId }: { userId: string }) {
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-white/[0.06] px-4">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
           <span className="h-2 w-2 rounded-full bg-online" />
           <span className="text-xs text-muted-foreground">
             {online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}
@@ -592,7 +592,7 @@ export function ChatApp({ userId }: { userId: string }) {
           </ChannelGroup>
         </nav>
         {voiceCh && (
-          <div className="mx-2 mb-2 rounded-lg border border-online/15 bg-online/[0.07] p-2.5">
+          <div className="mx-2 mb-2 rounded-xl border border-online/20 bg-online/[0.07] p-3 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-online" />
               <p className="text-xs font-bold text-online">Conectado à voz</p>
@@ -614,7 +614,7 @@ export function ChatApp({ userId }: { userId: string }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2 border-t border-border bg-rail px-2.5 py-2">
+        <div className="flex items-center gap-2 border-t border-border bg-rail px-2.5 py-2.5">
           <Button
             variant="ghost"
             onClick={() => me && setViewing(me)}
@@ -638,8 +638,8 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-[#222328]">
-        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#222328] px-3 sm:px-5">
+      <main className="flex min-w-0 flex-1 flex-col bg-background">
+        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 shadow-sm backdrop-blur-xl sm:px-5">
           <Button
             variant="ghost"
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
@@ -701,7 +701,7 @@ export function ChatApp({ userId }: { userId: string }) {
           </Button>
         </header>
         {searchOpen && (
-          <div className="flex items-center gap-3 border-b border-white/[0.06] bg-[#1f2025] px-4 py-3">
+          <div className="flex items-center gap-3 border-b border-border bg-panel px-4 py-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
               aria-label="Buscar nas mensagens carregadas"
@@ -787,7 +787,7 @@ export function ChatApp({ userId }: { userId: string }) {
                   </div>
                 )}
                 <div
-                  className={`group mx-auto flex w-full max-w-[1100px] gap-3 rounded-md px-2 py-1 transition-colors hover:bg-white/[0.025] sm:px-3 ${grouped ? "" : "mt-3"}`}
+                  className={`group mx-auto flex w-full max-w-[1100px] gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent/45 sm:px-3 ${grouped ? "" : "mt-3"}`}
                 >
                   <div className="w-9 shrink-0">
                     {!grouped && (
@@ -888,7 +888,7 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#2b2c32] px-3 py-2.5 transition-colors focus-within:border-primary/60">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5 shadow-lg shadow-black/10 transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
               <Button
                 variant="ghost"
                 type="button"
@@ -1010,7 +1010,7 @@ export function ChatApp({ userId }: { userId: string }) {
         />
       )}
       <aside
-        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-xl" : "hidden"} ${membersCollapsed ? "lg:hidden" : "lg:static lg:block lg:shadow-none"} w-72 shrink-0 overflow-y-auto border-l border-white/[0.06] bg-[#1c1d22] px-3 py-4 lg:w-[240px]`}
+        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-xl" : "hidden"} ${membersCollapsed ? "lg:hidden" : "lg:static lg:block lg:shadow-none"} w-72 shrink-0 overflow-y-auto border-l border-border bg-panel px-3 py-4 lg:w-[240px]`}
       >
         <div className="mb-4 flex h-9 items-center justify-between px-2">
           <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
