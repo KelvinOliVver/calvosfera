@@ -82,9 +82,11 @@ export function writeProfileExtrasCache(userId: string, value: Json) {
 type ProfileConnection = { id: string; label: string; url: string };
 type ProfileWidget = { id: string; title: string; description: string; url: string };
 type AvatarFrame = "none" | "sakura" | "gold";
+type ProfileEffect = "none" | "aurora" | "sakura" | "holographic" | "ember";
 type ProfileExtras = {
   badge: string;
   avatar_frame: AvatarFrame;
+  profile_effect: ProfileEffect;
   connections: ProfileConnection[];
   widgets: ProfileWidget[];
   wishlist: string[];
@@ -140,6 +142,13 @@ function profileExtras(value: Json | undefined): ProfileExtras {
     avatar_frame:
       data["avatar_frame"] === "sakura" || data["avatar_frame"] === "gold"
         ? data["avatar_frame"]
+        : "none",
+    profile_effect:
+      data["profile_effect"] === "aurora" ||
+      data["profile_effect"] === "sakura" ||
+      data["profile_effect"] === "holographic" ||
+      data["profile_effect"] === "ember"
+        ? data["profile_effect"]
         : "none",
     connections,
     widgets,
@@ -221,13 +230,17 @@ export function Avatar({
 }
 
 function bannerStyle(p: Profile): CSSProperties {
-  if (p.banner_color) return { background: p.banner_color };
   if (p.theme_primary) {
     return {
-      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, var(--panel)), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, var(--rail)))`,
+      background: `linear-gradient(125deg, color-mix(in srgb, ${p.banner_color || p.theme_primary} 64%, ${p.theme_primary}), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 44%, var(--rail)) 58%, color-mix(in srgb, ${p.theme_primary} 18%, var(--panel)))`,
     };
   }
+  if (p.banner_color) return { background: `linear-gradient(135deg, ${p.banner_color}, var(--rail))` };
   return { background: "var(--gradient-sakura)" };
+}
+
+function profileEffectClass(effect: ProfileEffect) {
+  return effect === "none" ? "" : `profile-effect profile-effect-${effect}`;
 }
 
 /** Card de perfil estilo Discord (popout). */
@@ -257,7 +270,7 @@ export function ProfileCard({
       style={{ "--profile-accent": p.theme_primary || "var(--primary)" } as CSSProperties}
     >
       <div className="profile-card-banner relative overflow-hidden">
-        <div className="h-36 w-full" style={bannerStyle(p)}>
+        <div className={`h-36 w-full ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
@@ -751,7 +764,7 @@ export function EditProfile({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background text-foreground animate-in fade-in duration-150">
-      <div className="grid min-h-screen grid-cols-1 md:grid-cols-[minmax(280px,330px)_minmax(0,1fr)] xl:grid-cols-[minmax(300px,340px)_minmax(360px,0.9fr)_minmax(340px,1fr)]">
+      <div className="grid min-h-screen grid-cols-1 md:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:min-h-dvh xl:grid-cols-[minmax(270px,300px)_minmax(330px,0.9fr)_minmax(320px,1fr)]">
         <aside className="border-b border-border bg-rail md:row-span-2 md:border-r md:border-b-0 xl:row-span-1">
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <button
@@ -797,6 +810,12 @@ export function EditProfile({
             </div>
 
             <div id="profile-identity" className="scroll-mt-4 space-y-4">
+              <div className="border-b border-border pb-3">
+                <p className="text-sm font-semibold text-foreground">Identidade</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Escolha como as pessoas vão reconhecer você na comunidade.
+                </p>
+              </div>
               <div className="space-y-2">
                 <SideLabel>Placa de identificação</SideLabel>
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-panel p-2">
@@ -868,7 +887,10 @@ export function EditProfile({
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <SideLabel>Tema e faixa</SideLabel>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Aparência</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Gradientes, faixa e detalhes visuais.</p>
+                  </div>
                   <Palette className="h-4 w-4 text-white/45" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -992,9 +1014,41 @@ export function EditProfile({
                   </div>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <SideLabel>Efeito da faixa</SideLabel>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Escolha uma camada visual sutil. Ela aparece na prévia e no perfil público.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ["none", "Sem efeito", "Visual limpo"],
+                    ["aurora", "Aurora", "Luzes fluidas"],
+                    ["sakura", "Pétalas", "Brilho rosado"],
+                    ["holographic", "Irisado", "Reflexos de cor"],
+                    ["ember", "Brasa", "Luz quente"],
+                  ] as const).map(([effect, label, description]) => (
+                    <button
+                      key={effect}
+                      type="button"
+                      aria-pressed={extras.profile_effect === effect}
+                      onClick={() => setExtras({ profile_effect: effect })}
+                      className={`rounded-lg border p-2 text-left transition ${extras.profile_effect === effect ? "border-primary/60 bg-primary/10" : "border-border bg-panel hover:bg-accent"}`}
+                    >
+                      <span className={`mb-2 block h-5 rounded ${profileEffectClass(effect)}`} style={bannerStyle(draft)} />
+                      <span className="block text-xs font-semibold">{label}</span>
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">{description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div id="profile-about" className="scroll-mt-4 space-y-3 border-t border-border pt-4">
+              <div className="pb-1">
+                <p className="text-sm font-semibold text-foreground">Sobre você</p>
+                <p className="mt-1 text-xs text-muted-foreground">Defina o que aparece junto ao seu nome.</p>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Adicione detalhes para as pessoas conhecerem você melhor.
               </p>
@@ -1089,7 +1143,7 @@ export function EditProfile({
             </span>
           </div>
           <div className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-black/50">
-            <div className="relative h-44 overflow-hidden" style={bannerStyle(draft)}>
+            <div className={`relative h-44 overflow-hidden ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(draft)}>
               {draft.banner_url ? (
                 <img src={draft.banner_url} alt="" className="h-full w-full object-cover" />
               ) : (
