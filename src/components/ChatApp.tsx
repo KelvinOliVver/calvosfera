@@ -115,6 +115,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [navOpen, setNavOpen] = useState(false);
   const [mobileMembersOpen, setMobileMembersOpen] = useState(false);
   const [membersCollapsed, setMembersCollapsed] = useState(false);
+  const [membersPreferenceUser, setMembersPreferenceUser] = useState<string | null>(null);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
@@ -148,6 +149,24 @@ export function ChatApp({ userId }: { userId: string }) {
   const banFn = useServerFn(banUser);
   const unbanFn = useServerFn(unbanUser);
   const communityTools = useCommunityTools(userId);
+
+  useEffect(() => {
+    try {
+      setMembersCollapsed(window.localStorage.getItem(`calvosfera:members-collapsed:${userId}`) === "true");
+    } catch {
+      // Keep the member panel available when browser storage is unavailable.
+    }
+    setMembersPreferenceUser(userId);
+  }, [userId]);
+
+  useEffect(() => {
+    if (membersPreferenceUser !== userId) return;
+    try {
+      window.localStorage.setItem(`calvosfera:members-collapsed:${userId}`, String(membersCollapsed));
+    } catch {
+      // The preference still applies until this page is closed.
+    }
+  }, [membersCollapsed, membersPreferenceUser, userId]);
 
   messagesRef.current = messages;
 
