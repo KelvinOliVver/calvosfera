@@ -19,6 +19,8 @@ import {
   Search,
   Smile,
   ChevronDown,
+  ChevronRight,
+  PanelRightClose,
   Settings2,
   LoaderCircle,
 } from "lucide-react";
@@ -42,7 +44,6 @@ import {
   readProfileExtrasCache,
   type Profile,
 } from "./ProfileDialogs";
-import communityBanner from "@/assets/bg.jpg";
 import { MessageText } from "./MessageText";
 
 type Channel = { id: string; name: string; kind: string; position: number };
@@ -85,6 +86,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [editing, setEditing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [mobileMembersOpen, setMobileMembersOpen] = useState(false);
+  const [membersCollapsed, setMembersCollapsed] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -158,7 +160,11 @@ export function ChatApp({ userId }: { userId: string }) {
   };
 
   const loadChannels = async () => {
-    const { data } = await supabase.from("channels").select("*").order("position");
+    const { data, error } = await supabase.from("channels").select("*").order("position");
+    if (error) {
+      toast.error(`Não foi possível carregar os canais: ${error.message}`);
+      return;
+    }
     if (!data) return;
     setChannels(data);
     setActive((a) =>
@@ -211,19 +217,38 @@ export function ChatApp({ userId }: { userId: string }) {
   }, [userId]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setMessages([]);
+      setLoadingMsgs(false);
+      return;
+    }
+    let cancelled = false;
     setMessages([]);
     setLoadingMsgs(true);
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("channel_id", active)
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("channel_id", active)
+          .order("created_at", { ascending: false })
+          .limit(100);
+        if (cancelled) return;
+        if (error) {
+          toast.error(`Não foi possível carregar as mensagens: ${error.message}`);
+          setLoadingMsgs(false);
+          return;
+        }
         if (data) setMessages(data.reverse());
         setLoadingMsgs(false);
-      });
+      } catch (error) {
+        if (cancelled) return;
+        toast.error(
+          `Não foi possível carregar as mensagens: ${error instanceof Error ? error.message : "erro inesperado"}`,
+        );
+        setLoadingMsgs(false);
+      }
+    })();
     const ch = supabase
       .channel(`msgs-${active}`)
       .on(
@@ -248,6 +273,7 @@ export function ChatApp({ userId }: { userId: string }) {
       )
       .subscribe();
     return () => {
+      cancelled = true;
       supabase.removeChannel(ch);
     };
   }, [active]);
@@ -364,6 +390,15 @@ export function ChatApp({ userId }: { userId: string }) {
     await loadChannels();
   }
 
+  async function deleteMessage(messageId: string) {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (error) {
+      toast.error(`Não foi possível apagar a mensagem: ${error.message}`);
+      return;
+    }
+    setMessages((current) => current.filter((message) => message.id !== messageId));
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const content = text.trim();
@@ -418,6 +453,15 @@ export function ChatApp({ userId }: { userId: string }) {
     () => Object.fromEntries(Object.values(profiles).map((p) => [p.username.toLowerCase(), p])),
     [profiles],
   );
+  const visibleMessages = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return messages;
+    return messages.filter((message) =>
+      `${message.content} ${nameOf(profiles[message.user_id])} ${message.attachment_name ?? ""}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [messages, profiles, search]);
 
   if (status?.banned) {
     return (
@@ -427,7 +471,8 @@ export function ChatApp({ userId }: { userId: string }) {
           <p className="mt-2 text-sm text-muted-foreground">
             {status.reason || "O admin removeu seu acesso à Calvosfera."}
           </p>
-          <Button variant="ghost"
+          <Button
+            variant="ghost"
             onClick={() => supabase.auth.signOut()}
             className="mt-6 text-sm text-primary hover:underline"
           >
@@ -439,7 +484,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="bg-app-gradient flex h-dvh min-h-0 overflow-hidden">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-[#222328] text-foreground">
       {/* Channels */}
       {navOpen && (
         <div
@@ -447,20 +492,20 @@ export function ChatApp({ userId }: { userId: string }) {
           onClick={() => setNavOpen(false)}
         />
       )}
-      <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-3 bg-rail py-3 md:flex">
+      <aside className="hidden w-[64px] shrink-0 flex-col items-center gap-3 border-r border-white/[0.04] bg-[#17181c] py-3 md:flex">
         <div
           title="Calvosfera"
           aria-current="page"
-          className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground"
+          className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-primary-foreground transition hover:rounded-xl"
         >
           <span className="absolute -left-[13px] h-8 rounded-r-full bg-foreground" />C
         </div>
       </aside>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-panel shadow-2xl shadow-glow backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-white/[0.06] bg-[#1c1d22] transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex h-[58px] items-center gap-3 border-b border-border px-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-extrabold text-primary-foreground">
+        <div className="flex h-[58px] items-center gap-3 border-b border-white/[0.06] px-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
             C
           </span>
           <span className="min-w-0 flex-1 text-left">
@@ -469,7 +514,8 @@ export function ChatApp({ userId }: { userId: string }) {
               Comunidade · {online.length} online
             </span>
           </span>
-          <Button variant="ghost"
+          <Button
+            variant="ghost"
             className="rounded p-1 text-muted-foreground hover:bg-accent md:hidden"
             onClick={() => setNavOpen(false)}
             aria-label="Fechar menu"
@@ -477,11 +523,16 @@ export function ChatApp({ userId }: { userId: string }) {
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="relative h-28 shrink-0 overflow-hidden border-b border-border">
-          <img src={communityBanner} alt="Paisagem anime da Calvosfera" className="h-full w-full object-cover" />
-          <span className="absolute bottom-3 left-3 rounded bg-rail/90 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-foreground">Calvosfera · Anime & amigos</span>
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-white/[0.06] px-4">
+          <span className="h-2 w-2 rounded-full bg-online" />
+          <span className="text-xs text-muted-foreground">
+            {online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}
+          </span>
         </div>
-        <nav className="flex-1 space-y-6 overflow-y-auto px-2.5 py-5">
+        <nav
+          aria-label="Canais da Calvosfera"
+          className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
+        >
           <ChannelGroup
             title="Canais de texto"
             onAdd={status?.isAdmin ? () => createChannel("text") : undefined}
@@ -564,7 +615,8 @@ export function ChatApp({ userId }: { userId: string }) {
           </div>
         )}
         <div className="flex items-center gap-2 border-t border-border bg-rail px-2.5 py-2">
-          <Button variant="ghost"
+          <Button
+            variant="ghost"
             onClick={() => me && setViewing(me)}
             className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-accent"
           >
@@ -586,24 +638,35 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-background">
-        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-border bg-background px-4 shadow-sm shadow-glow backdrop-blur-xl">
-          <Button variant="ghost"
+      <main className="flex min-w-0 flex-1 flex-col bg-[#222328]">
+        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#222328] px-3 sm:px-5">
+          <Button
+            variant="ghost"
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
             onClick={() => setNavOpen(true)}
             aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <Hash className="h-5 w-5 shrink-0 text-muted-foreground" />
+          {activeCh?.kind === "voice" ? (
+            <Volume2 className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
+          ) : (
+            <Hash className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
+          )}
           <div className="min-w-0">
-            <span className="block truncate text-sm font-bold">{activeCh?.name ?? "Canais"}</span>
-
+            <span className="block truncate text-sm font-semibold">
+              {activeCh?.name ?? "Canais"}
+            </span>
+            <span className="hidden truncate text-[11px] text-muted-foreground sm:block">
+              {activeCh?.kind === "voice"
+                ? "Canal de voz da comunidade"
+                : "Converse com a comunidade Calvosfera"}
+            </span>
           </div>
           <IconBtn onClick={() => setSearchOpen((value) => !value)} label="Buscar mensagens">
             <Search className="h-4 w-4" />
           </IconBtn>
-          <div className="ml-auto hidden items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground lg:flex">
+          <div className="ml-auto hidden items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground lg:flex">
             <Users className="h-3.5 w-3.5 text-online" />
             <span>{online.length} online</span>
           </div>
@@ -616,46 +679,89 @@ export function ChatApp({ userId }: { userId: string }) {
               <ShieldCheck className="h-3 w-3" /> Admin
             </span>
           )}
-          <Button variant="ghost"
+          <Button
+            variant="ghost"
+            onClick={() => setMembersCollapsed((collapsed) => !collapsed)}
+            aria-label={membersCollapsed ? "Mostrar lista de membros" : "Ocultar lista de membros"}
+            aria-expanded={!membersCollapsed}
+            className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground lg:inline-flex"
+          >
+            <PanelRightClose
+              className={`h-4 w-4 transition-transform ${membersCollapsed ? "rotate-180" : ""}`}
+            />
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setMobileMembersOpen((open) => !open)}
             aria-label={mobileMembersOpen ? "Fechar lista de membros" : "Abrir lista de membros"}
             aria-expanded={mobileMembersOpen}
-            className="ml-auto rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground lg:hidden"
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground lg:hidden"
           >
             <Users className="h-4 w-4" />
           </Button>
         </header>
         {searchOpen && (
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center gap-3 border-b border-white/[0.06] bg-[#1f2025] px-4 py-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <Input aria-label="Buscar nas mensagens carregadas" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nas últimas 100 mensagens" className="h-9 bg-panel" autoFocus />
-            <IconBtn onClick={() => { setSearch(""); setSearchOpen(false); }} label="Fechar busca"><X className="h-4 w-4" /></IconBtn>
+            <Input
+              aria-label="Buscar nas mensagens carregadas"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar nas últimas 100 mensagens"
+              className="h-9 bg-panel"
+              autoFocus
+            />
+            <IconBtn
+              onClick={() => {
+                setSearch("");
+                setSearchOpen(false);
+              }}
+              label="Fechar busca"
+            >
+              <X className="h-4 w-4" />
+            </IconBtn>
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:px-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:px-5 xl:px-8">
           {loadingMsgs && (
             <div role="status" aria-label="Carregando mensagens" className="space-y-6 px-3 py-6">
-              {[1, 2, 3].map((i) => <div key={i} className="flex gap-3 animate-pulse"><div className="h-10 w-10 shrink-0 rounded-full bg-muted" /><div className="flex-1 space-y-3"><div className="h-3 w-28 rounded bg-muted" /><div className="h-3 w-3/4 rounded bg-muted" /><div className="h-3 w-1/2 rounded bg-muted" /></div></div>)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3 animate-pulse">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-3 w-28 rounded bg-muted" />
+                    <div className="h-3 w-3/4 rounded bg-muted" />
+                    <div className="h-3 w-1/2 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-          {!loadingMsgs && messages.length === 0 && (
+          {!loadingMsgs && messages.length === 0 && !search.trim() && (
             <div className="mx-2 mt-8 max-w-xl pt-6 sm:mx-4">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-3xl text-primary ring-1 ring-primary/20">
-                <Hash className="h-7 w-7" />
-              </div>
+              {active ? (
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-3xl text-primary ring-1 ring-primary/20">
+                  <Hash className="h-7 w-7" />
+                </div>
+              ) : null}
               <p className="break-words font-sans text-2xl font-extrabold leading-tight sm:text-3xl">
-                Boas-vindas a #{activeCh?.name}
+                {activeCh ? `Boas-vindas a #${activeCh.name}` : "Nenhum canal disponível"}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Este é o começo do canal. Mande uma mensagem para iniciar a conversa.
+                {activeCh
+                  ? "Este é o começo do canal. Mande uma mensagem para iniciar a conversa."
+                  : "Ainda não há canais para conversar. Tente novamente mais tarde."}
               </p>
             </div>
           )}
-          {!loadingMsgs && search.trim() && !messages.some((m) => `${m.content} ${nameOf(profiles[m.user_id])} ${m.attachment_name ?? ""}`.toLowerCase().includes(search.toLowerCase())) && <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma mensagem encontrada.</p>}
-          {messages.map((m, i) => {
-            if (search.trim() && !`${m.content} ${nameOf(profiles[m.user_id])} ${m.attachment_name ?? ""}`.toLowerCase().includes(search.toLowerCase())) return null;
+          {!loadingMsgs && search.trim() && visibleMessages.length === 0 && (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Nenhuma mensagem encontrada.
+            </p>
+          )}
+          {visibleMessages.map((m, i) => {
             const p = profiles[m.user_id];
-            const previous = messages[i - 1];
+            const previous = visibleMessages[i - 1];
             const messageDate = new Date(m.created_at);
             const previousDate = previous ? new Date(previous.created_at) : null;
             const showDate =
@@ -668,7 +774,7 @@ export function ChatApp({ userId }: { userId: string }) {
             return (
               <Fragment key={m.id}>
                 {showDate && (
-                  <div className="my-5 flex items-center gap-3 px-2 text-[11px] font-semibold text-muted-foreground/80">
+                  <div className="mx-auto my-5 flex w-full max-w-[1100px] items-center gap-3 px-2 text-[11px] font-semibold text-muted-foreground/80">
                     <span className="h-px flex-1 bg-border" />
                     <span>
                       {messageDate.toLocaleDateString("pt-BR", {
@@ -681,24 +787,27 @@ export function ChatApp({ userId }: { userId: string }) {
                   </div>
                 )}
                 <div
-                  className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-muted/40 sm:px-3 ${grouped ? "" : "mt-3"}`}
+                  className={`group mx-auto flex w-full max-w-[1100px] gap-3 rounded-md px-2 py-1 transition-colors hover:bg-white/[0.025] sm:px-3 ${grouped ? "" : "mt-3"}`}
                 >
-                  <div className="w-10 shrink-0">
+                  <div className="w-9 shrink-0">
                     {!grouped && (
-                      <Button variant="ghost"
+                      <Button
+                        variant="ghost"
                         onClick={() => p && setViewing(p)}
+                        className="h-9 w-9 p-0"
                         aria-label={`Ver perfil de ${nameOf(p)}`}
                       >
-                        <Avatar p={p} />
+                        <Avatar p={p} size={36} />
                       </Button>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
                     {!grouped && (
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <Button variant="ghost"
+                        <Button
+                          variant="ghost"
                           onClick={() => p && setViewing(p)}
-                          className="font-semibold text-foreground hover:underline"
+                          className="h-auto px-0 py-0 text-sm font-semibold text-foreground hover:bg-transparent hover:underline"
                         >
                           {nameOf(p)}
                         </Button>
@@ -736,8 +845,9 @@ export function ChatApp({ userId }: { userId: string }) {
                     {m.attachment_url && <Attachment m={m} />}
                   </div>
                   {(m.user_id === userId || status?.isAdmin) && (
-                    <Button variant="ghost"
-                      onClick={() => supabase.from("messages").delete().eq("id", m.id)}
+                    <Button
+                      variant="ghost"
+                      onClick={() => void deleteMessage(m.id)}
                       className="h-8 w-8 shrink-0 self-start p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
                       aria-label="Apagar mensagem"
                     >
@@ -750,7 +860,10 @@ export function ChatApp({ userId }: { userId: string }) {
           })}
           <div ref={bottomRef} />
         </div>
-        <form onSubmit={send} className="shrink-0 px-4 pb-4">
+        <form
+          onSubmit={send}
+          className="mx-auto w-full max-w-[1100px] shrink-0 px-3 pb-4 sm:px-5 xl:px-8"
+        >
           {pendingFile && (
             <div className="mb-2 flex items-center gap-2 rounded-md bg-card px-3 py-2 text-sm">
               <FileText className="h-4 w-4 text-primary" />
@@ -758,7 +871,8 @@ export function ChatApp({ userId }: { userId: string }) {
               <span className="text-xs text-muted-foreground">
                 {(pendingFile.size / 1024 / 1024).toFixed(1)} MB
               </span>
-              <Button variant="ghost"
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setPendingFile(null)}
                 className="ml-auto rounded p-1 hover:bg-accent"
@@ -774,8 +888,9 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 shadow-lg shadow-glow transition focus-within:border-primary/50 focus-within:bg-card">
-              <Button variant="ghost"
+            <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#2b2c32] px-3 py-2.5 transition-colors focus-within:border-primary/60">
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 className="rounded p-1 text-muted-foreground transition hover:text-foreground"
@@ -798,7 +913,12 @@ export function ChatApp({ userId }: { userId: string }) {
                 ref={composerRef}
                 rows={1}
                 aria-label="Mensagem"
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onPaste={(e) => {
@@ -814,10 +934,58 @@ export function ChatApp({ userId }: { userId: string }) {
                 maxLength={2000}
               />
               <Popover>
-                <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Escolher emoji" title="Escolher emoji" className="shrink-0 text-muted-foreground"><Smile className="h-5 w-5" /></Button></PopoverTrigger>
-                <PopoverContent align="end" className="w-64 p-3"><div className="grid grid-cols-6 gap-1">{["😀", "😂", "🥹", "😍", "😎", "😭", "❤️", "🔥", "✨", "🎉", "👍", "💀", "🌸", "🎮", "🍜", "👀", "🤝", "💚"].map((emoji) => <Button key={emoji} variant="ghost" size="icon" aria-label={`Inserir ${emoji}`} className="text-xl" onClick={() => { setText((value) => (value + emoji).slice(0, 2000)); composerRef.current?.focus(); }}>{emoji}</Button>)}</div></PopoverContent>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Escolher emoji"
+                    title="Escolher emoji"
+                    className="shrink-0 text-muted-foreground"
+                  >
+                    <Smile className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3">
+                  <div className="grid grid-cols-6 gap-1">
+                    {[
+                      "😀",
+                      "😂",
+                      "🥹",
+                      "😍",
+                      "😎",
+                      "😭",
+                      "❤️",
+                      "🔥",
+                      "✨",
+                      "🎉",
+                      "👍",
+                      "💀",
+                      "🌸",
+                      "🎮",
+                      "🍜",
+                      "👀",
+                      "🤝",
+                      "💚",
+                    ].map((emoji) => (
+                      <Button
+                        key={emoji}
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Inserir ${emoji}`}
+                        className="text-xl"
+                        onClick={() => {
+                          setText((value) => (value + emoji).slice(0, 2000));
+                          composerRef.current?.focus();
+                        }}
+                      >
+                        {emoji}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
               </Popover>
-              <Button variant="ghost"
+              <Button
+                variant="ghost"
                 type="submit"
                 disabled={sending || !active || (!text.trim() && !pendingFile)}
                 className="h-9 w-9 shrink-0 p-1 text-primary transition disabled:text-muted-foreground"
@@ -842,13 +1010,16 @@ export function ChatApp({ userId }: { userId: string }) {
         />
       )}
       <aside
-        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-2xl" : "hidden"} w-72 shrink-0 overflow-y-auto border-l border-border bg-panel px-2.5 py-5 backdrop-blur-xl lg:static lg:block lg:w-[240px] lg:shadow-none`}
+        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-xl" : "hidden"} ${membersCollapsed ? "lg:hidden" : "lg:static lg:block lg:shadow-none"} w-72 shrink-0 overflow-y-auto border-l border-white/[0.06] bg-[#1c1d22] px-3 py-4 lg:w-[240px]`}
       >
-        <div className="mb-4 flex items-center justify-between px-2 lg:hidden">
-          <span className="text-sm font-bold">Membros</span>
-          <Button variant="ghost"
+        <div className="mb-4 flex h-9 items-center justify-between px-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Membros · {onlineMembers.length + offlineMembers.length}
+          </span>
+          <Button
+            variant="ghost"
             onClick={() => setMobileMembersOpen(false)}
-            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
             aria-label="Fechar lista de membros"
           >
             <X className="h-4 w-4" />
@@ -882,7 +1053,8 @@ export function ChatApp({ userId }: { userId: string }) {
         onClose={() => setViewing(null)}
         actions={
           status?.isAdmin && viewing && viewing.id !== userId ? (
-            <Button variant="ghost"
+            <Button
+              variant="ghost"
               onClick={() => toggleBan(viewing)}
               className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive transition hover:bg-destructive hover:text-destructive-foreground"
             >
@@ -953,14 +1125,24 @@ function ChannelGroup({
   children: React.ReactNode;
   onAdd?: (() => void) | undefined;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div>
       <div className="mb-1 flex items-center justify-between px-2">
-        <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"><ChevronDown className="h-3 w-3" />{title}</p>
-        {onAdd && (
-          <Button variant="ghost"
+        <Button
+          variant="ghost"
+          onClick={() => setCollapsed((value) => !value)}
+          aria-expanded={!collapsed}
+          className="h-7 min-w-0 justify-start gap-1 px-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-transparent hover:text-foreground"
+        >
+          {collapsed ? <ChevronRight /> : <ChevronDown />}
+          {title}
+        </Button>
+        {onAdd && !collapsed && (
+          <Button
+            variant="ghost"
             onClick={onAdd}
-            className="rounded p-0.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
             aria-label={`Criar ${title}`}
             title="Criar"
           >
@@ -968,7 +1150,7 @@ function ChannelGroup({
           </Button>
         )}
       </div>
-      <div className="space-y-0.5">{children}</div>
+      {!collapsed && <div className="space-y-0.5">{children}</div>}
     </div>
   );
 }
@@ -986,16 +1168,18 @@ function ChannelBtn({
 }) {
   return (
     <div
-      className={`group/ch flex min-h-9 items-center rounded-md transition ${active ? "bg-accent text-foreground shadow-sm shadow-glow" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+      className={`group/ch flex min-h-9 items-center rounded-md border-l-2 transition-colors ${active ? "border-primary bg-primary/[0.1] text-foreground" : "border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"}`}
     >
-      <Button variant="ghost"
+      <Button
+        variant="ghost"
         onClick={onClick}
         className="h-auto min-h-9 min-w-0 flex-1 justify-start gap-2 overflow-hidden px-2 py-1.5 text-left text-sm font-medium [&>span]:truncate"
       >
         {children}
       </Button>
       {onDelete && (
-        <Button variant="ghost"
+        <Button
+          variant="ghost"
           onClick={onDelete}
           className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover/ch:opacity-100 focus:opacity-100"
           aria-label="Apagar canal"
@@ -1029,7 +1213,8 @@ function MemberGroup({
         {members.map((p) => {
           const isOnline = online.includes(p.id);
           return (
-            <Button variant="ghost"
+            <Button
+              variant="ghost"
               key={p.id}
               onClick={() => onSelect(p)}
               className={`flex h-auto min-h-11 w-full justify-start gap-3 rounded-md px-2 py-1.5 text-left transition hover:bg-accent ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
@@ -1040,7 +1225,14 @@ function MemberGroup({
                 status={isOnline ? (p.status ?? "online") : "invisible"}
                 ring="border-panel"
               />
-              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{nameOf(p)}</span>{p.custom_status && <span className="block truncate text-[11px] font-normal text-muted-foreground">{p.custom_status}</span>}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{nameOf(p)}</span>
+                {p.custom_status && (
+                  <span className="block truncate text-[11px] font-normal text-muted-foreground">
+                    {p.custom_status}
+                  </span>
+                )}
+              </span>
               {bannedIds.includes(p.id) && (
                 <span className="text-[9px] font-bold uppercase text-destructive">Banido</span>
               )}
@@ -1065,11 +1257,13 @@ function IconBtn({
   children: React.ReactNode;
 }) {
   return (
-    <Button variant="ghost"
+    <Button
+      variant="ghost"
       onClick={onClick}
       title={label}
       aria-label={label}
-      size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
+      size="icon"
+      className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
     >
       {children}
     </Button>
