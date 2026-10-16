@@ -32,6 +32,9 @@ import {
   SlidersHorizontal,
   Bell,
   CheckCheck,
+  AtSign,
+  MessageCircle,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +87,19 @@ type Message = {
   edited_at?: string | null;
 };
 type MessageReaction = { message_id: string; user_id: string; reaction: string; created_at?: string };
+type ActivityNotification = {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  kind: "mention" | "reply" | "friend_request" | "direct_message";
+  title: string;
+  body: string;
+  channel_id: string | null;
+  message_id: string | null;
+  conversation_id: string | null;
+  created_at: string;
+  read_at: string | null;
+};
 
 const HELP = [
   "/limpar — apaga todas as mensagens deste canal",
@@ -146,12 +162,30 @@ export function ChatApp({ userId }: { userId: string }) {
   } | null>(null);
   const [bannedIds, setBannedIds] = useState<string[]>([]);
   const [unread, setUnread] = useState<Record<string, number>>({});
+  const [activityNotifications, setActivityNotifications] = useState<ActivityNotification[]>([]);
+  const [notificationsUnavailable, setNotificationsUnavailable] = useState(false);
   const channelSearchRef = useRef<HTMLInputElement>(null);
   const checkInFn = useServerFn(checkIn);
   const banFn = useServerFn(banUser);
   const unbanFn = useServerFn(unbanUser);
   const communityTools = useCommunityTools(userId);
   const unreadTotal = Object.values(unread).reduce((sum, count) => sum + count, 0);
+  const pendingNotificationCount = activityNotifications.filter((item) => !item.read_at).length;
+  const activityTotal = unreadTotal + pendingNotificationCount;
+
+  const loadActivityNotifications = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("user_notifications")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(40);
+    if (error) {
+      setNotificationsUnavailable(error.code === "42P01" || error.code === "PGRST205");
+      return;
+    }
+    setNotificationsUnavailable(false);
+    setActivityNotifications((data ?? []) as ActivityNotification[]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -217,6 +251,19 @@ export function ChatApp({ userId }: { userId: string }) {
       // Ignore corrupt or unavailable local storage.
     }
   }, [userId]);
+
+  useEffect(() => {
+    void loadActivityNotifications();
+    const channel = supabase
+      .channel(`user-notifications-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${userId}` },
+        () => void loadActivityNotifications(),
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [loadActivityNotifications, userId]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -290,6 +337,55 @@ export function ChatApp({ userId }: { userId: string }) {
     } catch (e) {
       toast.error((e as Error).message);
     }
+  }
+
+  async function markAllActivityRead() {
+    const readAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("user_notifications")
+      .update({ read_at: readAt })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    if (error) toast.error(`Não foi possível marcar os avisos como lidos: ${error.message}`);
+    else setActivityNotifications((items) => items.map((item) => ({ ...item, read_at: item.read_at ?? readAt })));
+    setUnread({});
+    try {
+      window.localStorage.setItem(`calvosfera:unread:${userId}`, "{}");
+    } catch {
+      // The channel counts remain cleared for this session.
+    }
+  }
+
+  async function openActivityNotification(notification: ActivityNotification) {
+    if (!notification.read_at) {
+      const readAt = new Date().toISOString();
+      const { error } = await supabase
+        .from("user_notifications")
+        .update({ read_at: readAt })
+        .eq("id", notification.id)
+        .eq("user_id", userId);
+      if (error) toast.error(`Não foi possível marcar o aviso como lido: ${error.message}`);
+      else setActivityNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read_at: readAt } : item));
+    }
+
+    if (notification.message_id) {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("id", notification.message_id)
+        .maybeSingle();
+      if (error) toast.error(`Não foi possível abrir a mensagem: ${error.message}`);
+      if (data) {
+        setSearchTarget(data as Message);
+        setSearchReadyId(null);
+        setSearchJumpVersion((version) => version + 1);
+        navigateToChannel(data.channel_id);
+        return;
+      }
+    }
+
+    if (notification.channel_id) navigateToChannel(notification.channel_id);
+    if (notification.kind === "friend_request" || notification.conversation_id) setSocialOpen(true);
   }
 
   const loadProfiles = async () => {
@@ -1003,48 +1099,65 @@ export function ChatApp({ userId }: { userId: string }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={unreadTotal ? `Atividade, ${unreadTotal} mensagens não lidas` : "Atividade"}
+                  aria-label={activityTotal ? `Atividade, ${activityTotal} avisos pendentes` : "Atividade"}
                   title="Atividade"
                   className="relative h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
                 >
                   <Bell className="h-4 w-4" />
-                  {unreadTotal > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">{unreadTotal > 99 ? "99+" : unreadTotal}</span>}
+                  {activityTotal > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">{activityTotal > 99 ? "99+" : activityTotal}</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-[min(22rem,calc(100vw-1rem))] p-0">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold">Atividade</p>
-                    <p className="text-xs text-muted-foreground">Mensagens novas por canal</p>
+                    <p className="text-xs text-muted-foreground">Menções, respostas e mensagens novas</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={unreadTotal === 0}
-                    onClick={() => {
-                      setUnread({});
-                      try { window.localStorage.setItem(`calvosfera:unread:${userId}`, "{}"); } catch { /* Keep the in-memory state. */ }
-                    }}
+                    disabled={activityTotal === 0}
+                    onClick={() => void markAllActivityRead()}
                     className="h-8 gap-1.5 px-2 text-xs"
                   >
                     <CheckCheck className="h-3.5 w-3.5" /> Limpar
                   </Button>
                 </div>
-                <div className="max-h-72 overflow-y-auto p-2">
-                  {channels.filter((channel) => (unread[channel.id] ?? 0) > 0).length === 0 ? (
-                    <p className="px-3 py-8 text-center text-sm text-muted-foreground">Tudo em dia. Nenhuma mensagem nova.</p>
-                  ) : channels.filter((channel) => (unread[channel.id] ?? 0) > 0).map((channel) => (
-                    <Button
-                      key={channel.id}
-                      variant="ghost"
-                      onClick={() => navigateToChannel(channel.id)}
-                      className="h-auto w-full justify-start gap-3 px-3 py-2 text-left"
-                    >
+                <div className="max-h-[min(28rem,65dvh)] overflow-y-auto p-2">
+                  {notificationsUnavailable && (
+                    <p className="m-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                      Avisos de menções, respostas, amizades e mensagens privadas precisam da migração <strong>0011_user_notifications</strong> no Supabase.
+                    </p>
+                  )}
+                  {activityNotifications.length > 0 && <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Avisos pessoais</p>}
+                  {activityNotifications.map((notification) => {
+                    const NotificationIcon = notification.kind === "mention" ? AtSign : notification.kind === "reply" ? CornerUpLeft : notification.kind === "friend_request" ? UserPlus : MessageCircle;
+                    return (
+                      <Button
+                        key={notification.id}
+                        variant="ghost"
+                        onClick={() => void openActivityNotification(notification)}
+                        className={`h-auto w-full items-start justify-start gap-3 whitespace-normal px-3 py-2.5 text-left ${notification.read_at ? "" : "bg-primary/[0.06]"}`}
+                      >
+                        <NotificationIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">{notification.title}</span>
+                          <span className="mt-0.5 block line-clamp-2 text-xs font-normal text-muted-foreground">{notification.body || (notification.actor_id ? profiles[notification.actor_id]?.username : "")}</span>
+                          <time className="mt-1 block text-[10px] font-normal text-muted-foreground">{new Date(notification.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</time>
+                        </span>
+                        {!notification.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Não lido" />}
+                      </Button>
+                    );
+                  })}
+                  {channels.some((channel) => (unread[channel.id] ?? 0) > 0) && <p className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Canais com mensagens novas</p>}
+                  {channels.filter((channel) => (unread[channel.id] ?? 0) > 0).map((channel) => (
+                    <Button key={channel.id} variant="ghost" onClick={() => navigateToChannel(channel.id)} className="h-auto w-full justify-start gap-3 px-3 py-2 text-left">
                       <Hash className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 truncate text-sm">{channel.name}</span>
                       <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">{unread[channel.id]}</span>
                     </Button>
                   ))}
+                  {activityTotal === 0 && !notificationsUnavailable && <p className="px-3 py-8 text-center text-sm text-muted-foreground">Tudo em dia. Nenhuma atividade nova.</p>}
                 </div>
               </PopoverContent>
             </Popover>

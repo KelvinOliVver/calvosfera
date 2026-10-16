@@ -218,6 +218,48 @@ export type Database = {
         Update: { message_id?: string; user_id?: string; reaction?: string; created_at?: string }
         Relationships: []
       }
+      user_notifications: {
+        Row: {
+          id: string
+          user_id: string
+          actor_id: string | null
+          kind: string
+          title: string
+          body: string
+          channel_id: string | null
+          message_id: string | null
+          conversation_id: string | null
+          created_at: string
+          read_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          actor_id?: string | null
+          kind: string
+          title: string
+          body?: string
+          channel_id?: string | null
+          message_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          read_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          actor_id?: string | null
+          kind?: string
+          title?: string
+          body?: string
+          channel_id?: string | null
+          message_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          read_at?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachment_name: string | null
