@@ -36,6 +36,41 @@
       "when": 1792042546235,
       "tag": "0004_discord_profile_and_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792094400000,
+      "tag": "0006_user_social",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792094500000,
+      "tag": "0007_community_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792094600000,
+      "tag": "0008_community_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792094700000,
+      "tag": "0009_admin_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792094800000,
+      "tag": "0010_message_reactions",
+      "breakpoints": true
     }
   ]
 }

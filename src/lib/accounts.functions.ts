@@ -113,6 +113,12 @@ export const banUser = createServerFn({ method: "POST" })
     const { data: targetAdmin } = await db.from("user_roles").select("role").eq("user_id", data.userId).eq("role", "admin").maybeSingle();
     if (targetAdmin) throw new Error("Não dá pra banir um admin");
     await db.from("bans").upsert({ user_id: data.userId, reason: data.reason?.slice(0, 200) || null, banned_by: context.userId });
+    await db.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      action: "member_banned",
+      target_user_id: data.userId,
+      details: { reason: data.reason?.slice(0, 200) || null },
+    });
     const { data: ids } = await db.from("user_identifiers").select("kind,value").eq("user_id", data.userId);
     if (ids?.length) {
       await db.from("banned_identifiers").upsert(ids.map((x) => ({ ...x, source_user: data.userId })), { ignoreDuplicates: true });
@@ -128,5 +134,48 @@ export const unbanUser = createServerFn({ method: "POST" })
     const db = await admin();
     await db.from("bans").delete().eq("user_id", data.userId);
     await db.from("banned_identifiers").delete().eq("source_user", data.userId);
+    await db.from("admin_audit_log").insert({ actor_id: context.userId, action: "member_unbanned", target_user_id: data.userId });
+    return { ok: true };
+  });
+
+export const setAdminRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; enabled: boolean }) => d)
+  .handler(async ({ data, context }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.userId)) throw new Error("Identificador de usuário inválido");
+    const db = await admin();
+    const { error } = await db.rpc("admin_set_role", {
+      _actor: context.userId,
+      _target: data.userId,
+      _enabled: data.enabled,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resolveCommunityReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { reportId: string; status: "resolved" | "dismissed" }) => d)
+  .handler(async ({ data, context }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.reportId)) throw new Error("Identificador de denúncia inválido");
+    await assertAdmin(context.supabase, context.userId);
+    const db = await admin();
+    const { data: report, error: readError } = await db
+      .from("community_reports")
+      .select("target_user_id")
+      .eq("id", data.reportId)
+      .single();
+    if (readError) throw new Error(readError.message);
+    const { error } = await db
+      .from("community_reports")
+      .update({ status: data.status, resolved_at: new Date().toISOString() })
+      .eq("id", data.reportId);
+    if (error) throw new Error(error.message);
+    await db.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      action: `report_${data.status}`,
+      target_user_id: report.target_user_id,
+      details: { reportId: data.reportId },
+    });
     return { ok: true };
   });

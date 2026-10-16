@@ -649,6 +649,7 @@ export function EditProfile({
           display_name: draft.display_name?.trim().slice(0, 32) || null,
           pronouns: draft.pronouns?.trim().slice(0, 40) || null,
           bio: draft.bio?.slice(0, 190) || null,
+          status: draft.status ?? "online",
           custom_status: draft.custom_status?.trim().slice(0, 80) || null,
           avatar_url: draft.avatar_url,
           banner_url: draft.banner_url,
@@ -951,6 +952,20 @@ export function EditProfile({
                 Adicione detalhes para as pessoas conhecerem você melhor.
               </p>
               <SideLabel>Sobre o perfil</SideLabel>
+              <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-panel px-3 py-2 text-sm">
+                <span>Presença</span>
+                <select
+                  aria-label="Estado de presença"
+                  value={draft.status ?? "online"}
+                  onChange={(event) => set({ status: event.target.value })}
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                >
+                  <option value="online">Online</option>
+                  <option value="idle">Ausente</option>
+                  <option value="dnd">Não perturbe</option>
+                  <option value="invisible">Invisível</option>
+                </select>
+              </label>
               <Input
                 value={draft.pronouns ?? ""}
                 onChange={(e) => set({ pronouns: e.target.value })}

@@ -84,6 +84,70 @@
   );
 }
 
+html[data-theme="deep"] {
+  --background: oklch(0.09 0.012 267);
+  --rail: oklch(0.075 0.012 267);
+  --panel: oklch(0.115 0.015 267 / 98%);
+  --card: oklch(0.145 0.018 267 / 98%);
+  --popover: oklch(0.13 0.016 267 / 99%);
+  --muted: oklch(0.19 0.018 267);
+  --accent: oklch(0.2 0.024 278);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --scrim: oklch(0.03 0.01 267 / 88%);
+  --gradient-aurora: none;
+}
+
+html[data-theme="graphite"] {
+  --background: oklch(0.15 0.006 260);
+  --rail: oklch(0.12 0.006 260);
+  --panel: oklch(0.18 0.007 260 / 98%);
+  --card: oklch(0.21 0.008 260 / 98%);
+  --popover: oklch(0.2 0.008 260 / 99%);
+  --muted: oklch(0.27 0.008 260);
+  --muted-foreground: oklch(0.72 0.008 260);
+  --accent: oklch(0.27 0.009 260);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 12%);
+  --gradient-aurora: none;
+}
+
+html[data-theme="light"] {
+  --background: oklch(0.97 0.006 260);
+  --foreground: oklch(0.22 0.018 267);
+  --rail: oklch(0.93 0.008 260);
+  --panel: oklch(0.99 0.004 260 / 98%);
+  --card: oklch(1 0 0 / 98%);
+  --card-foreground: oklch(0.22 0.018 267);
+  --popover: oklch(1 0 0 / 99%);
+  --popover-foreground: oklch(0.22 0.018 267);
+  --secondary: oklch(0.85 0.04 275);
+  --secondary-foreground: oklch(0.2 0.02 267);
+  --muted: oklch(0.92 0.008 260);
+  --muted-foreground: oklch(0.48 0.016 260);
+  --accent: oklch(0.93 0.02 280);
+  --accent-foreground: oklch(0.2 0.02 267);
+  --border: oklch(0.78 0.012 260 / 60%);
+  --input: oklch(0.75 0.012 260 / 55%);
+  --scrim: oklch(0.2 0.015 260 / 55%);
+  --gradient-aurora: none;
+  --auth-overlay: linear-gradient(90deg, oklch(0.99 0.005 260 / 12%), oklch(0.98 0.008 260 / 86%) 52%, var(--rail) 92%);
+}
+
+html[data-theme="amoled"] {
+  --background: #000;
+  --rail: #000;
+  --panel: #050505;
+  --card: #080808;
+  --popover: #070707;
+  --muted: #111;
+  --accent: #17131d;
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --scrim: #000;
+  --gradient-aurora: none;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -168,7 +232,38 @@
   .app-loading { background: radial-gradient(ellipse at 50% 35%, oklch(0.23 0.04 280 / 30%), transparent 42%), var(--background); }
   .loading-track { background: oklch(1 0 0 / 8%); }
   .loading-progress { animation: loading-sweep 1.2s ease-in-out infinite alternate; }
+
+  .theme-choice[data-theme-preview="dark"] { background: #171923; }
+  .theme-choice[data-theme-preview="deep"] { background: #0a0b0e; }
+  .theme-choice[data-theme-preview="graphite"] { background: #242528; }
+  .theme-choice[data-theme-preview="light"] { background: #f5f5f7; color: #25252b; }
+  .theme-choice[data-theme-preview="amoled"] { background: #000; }
+  html[data-density="compact"] .message-row { padding-top: 0.2rem; padding-bottom: 0.2rem; }
+  html[data-density="comfortable"] .message-row { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+  html[data-chat-size="small"] .message-content { font-size: 0.8125rem; line-height: 1.4rem; }
+  html[data-chat-size="large"] .message-content { font-size: 1rem; line-height: 1.75rem; }
+  html[data-show-avatars="false"] .message-row > div:first-child { display: none; }
+  html[data-show-timestamps="false"] .message-timestamp { display: none; }
+  html[data-reduce-motion="true"] *, html[data-reduce-motion="true"] *::before, html[data-reduce-motion="true"] *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+html[data-theme="light"] body { background-color: var(--background); background-image: none; }
+html[data-theme="light"] .app-shell,
+html[data-theme="light"] .glass-panel,
+html[data-theme="light"] .auth-card,
+html[data-theme="light"] .profile-card,
+html[data-theme="light"] .members-sidebar,
+html[data-theme="light"] .chat-sidebar,
+html[data-theme="light"] .chat-topbar,
+html[data-theme="light"] .current-user { background: var(--panel); color: var(--foreground); box-shadow: none; }
+html[data-theme="light"] .server-rail { background: var(--rail); }
+html[data-theme="light"] .chat-workspace,
+html[data-theme="light"] .conversation-panel { background: var(--background); }
+html[data-theme="light"] .message-own-bubble { background: color-mix(in srgb, var(--primary) 84%, #333); }
+html[data-theme="amoled"] .app-shell,
+html[data-theme="amoled"] .chat-workspace,
+html[data-theme="amoled"] .conversation-panel,
+html[data-theme="amoled"] .server-rail { background: #000; }
 
 @keyframes loading-sweep {
   from { transform: translateX(-35%); opacity: 0.65; }

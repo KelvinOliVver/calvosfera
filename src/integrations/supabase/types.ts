@@ -56,6 +56,27 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_users: {
+        Row: { blocker_id: string; blocked_id: string; created_at: string }
+        Insert: { blocker_id: string; blocked_id: string; created_at?: string }
+        Update: { blocker_id?: string; blocked_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_users_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_users_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -78,6 +99,123 @@ export type Database = {
           name?: string
           position?: number
         }
+        Relationships: []
+      }
+      dm_conversations: {
+        Row: { id: string; user_a: string; user_b: string; created_at: string }
+        Insert: { id?: string; user_a: string; user_b: string; created_at?: string }
+        Update: { id?: string; user_a?: string; user_b?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "dm_conversations_user_a_fkey"
+            columns: ["user_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_conversations_user_b_fkey"
+            columns: ["user_b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          created_at: string
+          edited_at: string | null
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          created_at?: string
+          edited_at?: string | null
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          sender_id?: string
+          content?: string
+          created_at?: string
+          edited_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "dm_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_polls: {
+        Row: { id: string; author_id: string; question: string; options: string[]; ends_at: string | null; created_at: string }
+        Insert: { id?: string; author_id: string; question: string; options: string[]; ends_at?: string | null; created_at?: string }
+        Update: { id?: string; author_id?: string; question?: string; options?: string[]; ends_at?: string | null; created_at?: string }
+        Relationships: []
+      }
+      community_poll_votes: {
+        Row: { poll_id: string; user_id: string; option_index: number; created_at: string }
+        Insert: { poll_id: string; user_id: string; option_index: number; created_at?: string }
+        Update: { poll_id?: string; user_id?: string; option_index?: number; created_at?: string }
+        Relationships: []
+      }
+      community_suggestions: {
+        Row: { id: string; author_id: string; title: string; description: string; status: string; response: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; author_id: string; title: string; description: string; status?: string; response?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; author_id?: string; title?: string; description?: string; status?: string; response?: string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      community_suggestion_votes: {
+        Row: { suggestion_id: string; user_id: string; created_at: string }
+        Insert: { suggestion_id: string; user_id: string; created_at?: string }
+        Update: { suggestion_id?: string; user_id?: string; created_at?: string }
+        Relationships: []
+      }
+      community_reports: {
+        Row: { id: string; reporter_id: string; target_user_id: string | null; target_message_id: string | null; reason: string; status: string; moderator_note: string | null; created_at: string; resolved_at: string | null }
+        Insert: { id?: string; reporter_id: string; target_user_id?: string | null; target_message_id?: string | null; reason: string; status?: string; moderator_note?: string | null; created_at?: string; resolved_at?: string | null }
+        Update: { id?: string; reporter_id?: string; target_user_id?: string | null; target_message_id?: string | null; reason?: string; status?: string; moderator_note?: string | null; created_at?: string; resolved_at?: string | null }
+        Relationships: []
+      }
+      community_events: {
+        Row: { id: string; author_id: string; title: string; description: string; starts_at: string; location: string | null; status: string; created_at: string }
+        Insert: { id?: string; author_id: string; title: string; description: string; starts_at: string; location?: string | null; status?: string; created_at?: string }
+        Update: { id?: string; author_id?: string; title?: string; description?: string; starts_at?: string; location?: string | null; status?: string; created_at?: string }
+        Relationships: []
+      }
+      community_event_rsvps: {
+        Row: { event_id: string; user_id: string; created_at: string }
+        Insert: { event_id: string; user_id: string; created_at?: string }
+        Update: { event_id?: string; user_id?: string; created_at?: string }
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: { id: string; actor_id: string; action: string; target_user_id: string | null; details: Json; created_at: string }
+        Insert: { id?: string; actor_id: string; action: string; target_user_id?: string | null; details?: Json; created_at?: string }
+        Update: { id?: string; actor_id?: string; action?: string; target_user_id?: string | null; details?: Json; created_at?: string }
+        Relationships: []
+      }
+      message_reactions: {
+        Row: { message_id: string; user_id: string; reaction: string; created_at: string }
+        Insert: { message_id: string; user_id: string; reaction: string; created_at?: string }
+        Update: { message_id?: string; user_id?: string; reaction?: string; created_at?: string }
         Relationships: []
       }
       messages: {
@@ -192,6 +330,55 @@ export type Database = {
         }
         Relationships: []
       }
+      friendships: {
+        Row: {
+          user_a: string
+          user_b: string
+          requested_by: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_a: string
+          user_b: string
+          requested_by: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_a?: string
+          user_b?: string
+          requested_by?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_user_a_fkey"
+            columns: ["user_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_b_fkey"
+            columns: ["user_b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timeouts: {
         Row: {
           created_at: string
@@ -264,6 +451,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_set_role: { Args: { _actor: string; _target: string; _enabled: boolean }; Returns: undefined }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
       is_timed_out: { Args: { _user_id: string }; Returns: boolean }
     }

@@ -23,6 +23,13 @@ import {
   PanelRightClose,
   Settings2,
   LoaderCircle,
+  Palette,
+  CornerUpLeft,
+  Bookmark,
+  Star,
+  Vote,
+  MessageSquareText,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +61,12 @@ import {
   type Profile,
 } from "./ProfileDialogs";
 import { MessageText } from "./MessageText";
+import { AppPreferencesDialog } from "./AppPreferences";
+import { SavedMessagesDialog, useCommunityTools } from "./CommunityTools";
+import { SocialCenter } from "./SocialCenter";
+import { CommunityHub } from "./CommunityHub";
+import { MessageThreadDialog } from "./MessageThreadDialog";
+import { MessageSearchDialog } from "./MessageSearchDialog";
 
 type Channel = { id: string; name: string; kind: string; position: number };
 type Message = {
@@ -65,7 +78,10 @@ type Message = {
   attachment_url?: string | null;
   attachment_type?: string | null;
   attachment_name?: string | null;
+  reply_to?: string | null;
+  edited_at?: string | null;
 };
+type MessageReaction = { message_id: string; user_id: string; reaction: string; created_at?: string };
 
 const HELP = [
   "/limpar — apaga todas as mensagens deste canal",
@@ -86,6 +102,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [active, setActive] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [messages, setMessages] = useState<Message[]>([]);
+  const [reactions, setReactions] = useState<MessageReaction[]>([]);
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const [channelSearch, setChannelSearch] = useState("");
@@ -100,8 +117,21 @@ export function ChatApp({ userId }: { userId: string }) {
   const [membersCollapsed, setMembersCollapsed] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Message[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [savedMessagesOpen, setSavedMessagesOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [threadRoot, setThreadRoot] = useState<Message | null>(null);
+  const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [searchTarget, setSearchTarget] = useState<Message | null>(null);
+  const [searchJumpVersion, setSearchJumpVersion] = useState(0);
+  const [searchReadyId, setSearchReadyId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [mutedUntil, setMutedUntil] = useState<Date | null>(null);
   const [, tick] = useState(0);
@@ -117,6 +147,23 @@ export function ChatApp({ userId }: { userId: string }) {
   const checkInFn = useServerFn(checkIn);
   const banFn = useServerFn(banUser);
   const unbanFn = useServerFn(unbanUser);
+  const communityTools = useCommunityTools(userId);
+
+  messagesRef.current = messages;
+
+  const navigateToChannel = (channelId: string) => {
+    if (active) communityTools.saveDraft(active, text);
+    setActive(channelId);
+    setNavOpen(false);
+  };
+
+  useEffect(() => {
+    if (active) setText(communityTools.readDraft(active));
+  }, [active, communityTools.readDraft]);
+
+  useEffect(() => {
+    if (active) communityTools.saveDraft(active, text);
+  }, [active, text, communityTools.saveDraft]);
 
   useEffect(() => {
     getIdentity()
@@ -138,8 +185,8 @@ export function ChatApp({ userId }: { userId: string }) {
       const stored = JSON.parse(window.localStorage.getItem(key) ?? "{}");
       if (stored && typeof stored === "object" && !Array.isArray(stored)) {
         const counts = Object.fromEntries(
-          Object.entries(stored).filter((entry): entry is [string, number] =>
-            typeof entry[1] === "number" && entry[1] > 0,
+          Object.entries(stored).filter(
+            (entry): entry is [string, number] => typeof entry[1] === "number" && entry[1] > 0,
           ),
         );
         setUnread(counts);
@@ -178,19 +225,27 @@ export function ChatApp({ userId }: { userId: string }) {
   useEffect(() => {
     const channel = supabase
       .channel(`unread-${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-        const message = payload.new as Message;
-        if (!message.channel_id || message.channel_id === active || message.user_id === userId) return;
-        setUnread((current) => {
-          const next = { ...current, [message.channel_id]: (current[message.channel_id] ?? 0) + 1 };
-          try {
-            window.localStorage.setItem(`calvosfera:unread:${userId}`, JSON.stringify(next));
-          } catch {
-            // Unread counts still work for this session when storage is unavailable.
-          }
-          return next;
-        });
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const message = payload.new as Message;
+          if (!message.channel_id || message.channel_id === active || message.user_id === userId)
+            return;
+          setUnread((current) => {
+            const next = {
+              ...current,
+              [message.channel_id]: (current[message.channel_id] ?? 0) + 1,
+            };
+            try {
+              window.localStorage.setItem(`calvosfera:unread:${userId}`, JSON.stringify(next));
+            } catch {
+              // Unread counts still work for this session when storage is unavailable.
+            }
+            return next;
+          });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -287,37 +342,71 @@ export function ChatApp({ userId }: { userId: string }) {
         if (row?.id) setProfiles((all) => ({ ...all, [row.id]: row }));
       })
       .subscribe((s) => {
-        if (s === "SUBSCRIBED") ch.track({ at: Date.now() });
+        if (s === "SUBSCRIBED" && profiles[userId] && profiles[userId]?.status !== "invisible") {
+          ch.track({ at: Date.now() });
+        }
       });
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [userId]);
+  }, [userId, profiles[userId]?.status]);
 
   useEffect(() => {
     if (!active) {
       setMessages([]);
+      setReactions([]);
       setLoadingMsgs(false);
       return;
     }
     let cancelled = false;
     setMessages([]);
+    setReactions([]);
     setLoadingMsgs(true);
     void (async () => {
       try {
-        const { data, error } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("channel_id", active)
-          .order("created_at", { ascending: false })
-          .limit(100);
+        let data: Message[] | null;
+        let error;
+        if (searchTarget?.channel_id === active) {
+          const [before, after] = await Promise.all([
+            supabase.from("messages").select("*").eq("channel_id", active).lt("created_at", searchTarget.created_at).order("created_at", { ascending: false }).limit(40),
+            supabase.from("messages").select("*").eq("channel_id", active).gte("created_at", searchTarget.created_at).order("created_at", { ascending: true }).limit(41),
+          ]);
+          error = before.error ?? after.error;
+          data = error ? null : [...(before.data ?? []).reverse(), ...(after.data ?? [])] as Message[];
+        } else {
+          const result = await supabase
+            .from("messages")
+            .select("*")
+            .eq("channel_id", active)
+            .order("created_at", { ascending: false })
+            .limit(100);
+          data = result.data;
+          error = result.error;
+        }
         if (cancelled) return;
         if (error) {
           toast.error(`Não foi possível carregar as mensagens: ${error.message}`);
           setLoadingMsgs(false);
           return;
         }
-        if (data) setMessages(data.reverse());
+        if (data) {
+          setMessages(searchTarget?.channel_id === active ? data : data.reverse());
+          const messageIds = data.map((message) => message.id);
+          if (messageIds.length > 0) {
+            const { data: reactionData } = await supabase
+              .from("message_reactions")
+              .select("message_id,user_id,reaction,created_at")
+              .in("message_id", messageIds);
+            if (!cancelled && reactionData) setReactions(reactionData);
+          }
+          if (searchTarget?.channel_id === active) {
+            if (data.some((message) => message.id === searchTarget.id)) setSearchReadyId(searchTarget.id);
+            else {
+              toast.error("Essa mensagem não está mais disponível neste canal.");
+              setSearchTarget(null);
+            }
+          }
+        }
         setLoadingMsgs(false);
       } catch (error) {
         if (cancelled) return;
@@ -349,16 +438,42 @@ export function ChatApp({ userId }: { userId: string }) {
           setMessages((prev) => prev.filter((x) => x.id !== id));
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `channel_id=eq.${active}` },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) =>
+            prev.map((message) => (message.id === updated.id ? updated : message)),
+          );
+        },
+      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reactions" }, (payload) => {
+        const reaction = payload.new as MessageReaction;
+        if (messagesRef.current.some((message) => message.id === reaction.message_id)) {
+          setReactions((current) => current.some((item) => item.message_id === reaction.message_id && item.user_id === reaction.user_id && item.reaction === reaction.reaction) ? current : [...current, reaction]);
+        }
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "message_reactions" }, (payload) => {
+        const reaction = payload.old as MessageReaction;
+        setReactions((current) => current.filter((item) => !(item.message_id === reaction.message_id && item.user_id === reaction.user_id && item.reaction === reaction.reaction)));
+      })
       .subscribe();
     return () => {
       cancelled = true;
       supabase.removeChannel(ch);
     };
-  }, [active]);
+  }, [active, searchJumpVersion]);
 
   useEffect(() => {
+    if (searchTarget && searchReadyId === searchTarget.id && active === searchTarget.channel_id) {
+      if (!messages.some((message) => message.id === searchTarget.id)) return;
+      document.getElementById(`message-${searchTarget.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setSearchTarget(null);
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, searchTarget, searchReadyId, active]);
 
   useEffect(() => {
     if (voice.error) toast.error(voice.error);
@@ -477,6 +592,41 @@ export function ChatApp({ userId }: { userId: string }) {
     setMessages((current) => current.filter((message) => message.id !== messageId));
   }
 
+  async function toggleReaction(messageId: string, reaction: string) {
+    const existing = reactions.find((item) => item.message_id === messageId && item.user_id === userId && item.reaction === reaction);
+    const result = existing
+      ? await supabase.from("message_reactions").delete().eq("message_id", messageId).eq("user_id", userId).eq("reaction", reaction)
+      : await supabase.from("message_reactions").insert({ message_id: messageId, user_id: userId, reaction });
+    if (result.error) {
+      toast.error(result.error.code === "42P01" || result.error.code === "PGRST205" ? "Aplique a migração 0010_message_reactions.sql para ativar reações." : `Não foi possível reagir: ${result.error.message}`);
+      return;
+    }
+    setReactions((current) => existing
+      ? current.filter((item) => !(item.message_id === messageId && item.user_id === userId && item.reaction === reaction))
+      : [...current, { message_id: messageId, user_id: userId, reaction }]);
+  }
+
+  async function saveMessageEdit(messageId: string) {
+    const content = editingContent.trim();
+    if (!content) return;
+    const { data, error } = await supabase
+      .from("messages")
+      .update({ content: content.slice(0, 2000), edited_at: new Date().toISOString() })
+      .eq("id", messageId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Não foi possível editar: ${error.message}`);
+      return;
+    }
+    setMessages((prev) =>
+      prev.map((message) => (message.id === messageId ? (data as Message) : message)),
+    );
+    setEditingMessageId(null);
+    setEditingContent("");
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const content = text.trim();
@@ -499,12 +649,14 @@ export function ChatApp({ userId }: { userId: string }) {
           attachment_url: att?.url ?? null,
           attachment_type: att?.type ?? null,
           attachment_name: att?.name ?? null,
+          reply_to: replyingTo?.id ?? null,
         })
         .select()
         .single();
       if (error) throw error;
       setText("");
       setPendingFile(null);
+      setReplyingTo(null);
       setMessages((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data]));
     } catch (err) {
       toast.error(mutedUntil ? "Você está em timeout" : (err as Error).message);
@@ -516,6 +668,9 @@ export function ChatApp({ userId }: { userId: string }) {
   const me = profiles[userId];
   const activeCh = channels.find((c) => c.id === active);
   const voiceCh = channels.find((c) => c.id === voice.channelId);
+  const favoriteChannels = channels.filter((channel) =>
+    communityTools.favoriteIds.includes(channel.id),
+  );
   const sortedMembers = useMemo(
     () =>
       Object.values(profiles).sort(
@@ -620,9 +775,19 @@ export function ChatApp({ userId }: { userId: string }) {
             />
           </label>
           <div className="mt-3 flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-online/50" /><span className="relative inline-flex h-2 w-2 rounded-full bg-online" /></span>
-            <span>{online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}</span>
-            <Button variant="ghost" onClick={() => setCommandOpen(true)} className="ml-auto h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground" aria-label="Abrir navegação rápida">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-online/50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-online" />
+            </span>
+            <span>
+              {online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}
+            </span>
+            <Button
+              variant="ghost"
+              onClick={() => setCommandOpen(true)}
+              className="ml-auto h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+              aria-label="Abrir navegação rápida"
+            >
               Ctrl K
             </Button>
           </div>
@@ -631,27 +796,63 @@ export function ChatApp({ userId }: { userId: string }) {
           aria-label="Canais da Calvosfera"
           className="channel-navigation flex-1 space-y-5 overflow-y-auto px-2.5 py-2"
         >
+          <ChannelGroup title="Favoritos">
+            {favoriteChannels.map((channel) => (
+              <ChannelBtn
+                key={`favorite-${channel.id}`}
+                active={
+                  channel.kind === "voice" ? channel.id === voice.channelId : channel.id === active
+                }
+                onClick={() =>
+                  channel.kind === "voice" ? voice.join(channel.id) : navigateToChannel(channel.id)
+                }
+                isFavorite
+                onToggleFavorite={() => communityTools.toggleFavorite(channel.id)}
+                onDelete={status?.isAdmin ? () => deleteChannel(channel) : undefined}
+              >
+                {channel.kind === "voice" ? (
+                  <Volume2 className="h-4 w-4" />
+                ) : (
+                  <Hash className="h-[18px] w-[18px]" />
+                )}
+                <span className="min-w-0 flex-1 truncate">{channel.name}</span>
+              </ChannelBtn>
+            ))}
+            {favoriteChannels.length === 0 && (
+              <p className="px-2 py-1 text-xs text-muted-foreground">
+                Marque uma estrela para fixar um canal aqui.
+              </p>
+            )}
+          </ChannelGroup>
           <ChannelGroup
             title="Canais de texto"
             onAdd={status?.isAdmin ? () => createChannel("text") : undefined}
           >
             {visibleChannels.filter((c) => c.kind === "text").length === 0 && (
-              <p className="px-2 py-1 text-xs text-muted-foreground">{channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}</p>
+              <p className="px-2 py-1 text-xs text-muted-foreground">
+                {channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}
+              </p>
             )}
             {channels
-              .filter((c) => c.kind === "text" && visibleChannels.includes(c))
+              .filter(
+                (c) =>
+                  c.kind === "text" &&
+                  visibleChannels.includes(c) &&
+                  !communityTools.favoriteIds.includes(c.id),
+              )
               .map((c) => (
                 <ChannelBtn
                   key={c.id}
                   active={c.id === active}
                   unread={unread[c.id] ?? 0}
                   onClick={() => {
-                    setActive(c.id);
-                    setNavOpen(false);
+                    navigateToChannel(c.id);
                   }}
                   onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
+                  onToggleFavorite={() => communityTools.toggleFavorite(c.id)}
                 >
-                  <Hash className="h-[18px] w-[18px]" /> <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  <Hash className="h-[18px] w-[18px]" />{" "}
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
                 </ChannelBtn>
               ))}
           </ChannelGroup>
@@ -660,18 +861,27 @@ export function ChatApp({ userId }: { userId: string }) {
             onAdd={status?.isAdmin ? () => createChannel("voice") : undefined}
           >
             {visibleChannels.filter((c) => c.kind === "voice").length === 0 && (
-              <p className="px-2 py-1 text-xs text-muted-foreground">{channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}</p>
+              <p className="px-2 py-1 text-xs text-muted-foreground">
+                {channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}
+              </p>
             )}
             {channels
-              .filter((c) => c.kind === "voice" && visibleChannels.includes(c))
+              .filter(
+                (c) =>
+                  c.kind === "voice" &&
+                  visibleChannels.includes(c) &&
+                  !communityTools.favoriteIds.includes(c.id),
+              )
               .map((c) => (
                 <div key={c.id}>
                   <ChannelBtn
                     active={c.id === voice.channelId}
                     onClick={() => voice.join(c.id)}
                     onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
+                    onToggleFavorite={() => communityTools.toggleFavorite(c.id)}
                   >
-                    <Volume2 className="h-4 w-4" /> <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                    <Volume2 className="h-4 w-4" />{" "}
+                    <span className="min-w-0 flex-1 truncate">{c.name}</span>
                   </ChannelBtn>
                   {c.id === voice.channelId && (
                     <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
@@ -761,6 +971,23 @@ export function ChatApp({ userId }: { userId: string }) {
                 ? "Canal de voz da comunidade"
                 : "Converse com a comunidade Calvosfera"}
             </span>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <IconBtn onClick={() => setSocialOpen(true)} label="Amigos e mensagens privadas">
+              <Users className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade">
+              <Vote className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas">
+              <Bookmark className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências">
+              <Palette className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn onClick={() => setMessageSearchOpen(true)} label="Busca avançada de mensagens">
+              <SlidersHorizontal className="h-4 w-4" />
+            </IconBtn>
           </div>
           <IconBtn onClick={() => setSearchOpen((value) => !value)} label="Buscar mensagens">
             <Search className="h-4 w-4" />
@@ -853,7 +1080,10 @@ export function ChatApp({ userId }: { userId: string }) {
               </p>
               {activeCh && (
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Button onClick={() => composerRef.current?.focus()} className="rounded-xl font-semibold shadow-lg shadow-primary/15">
+                  <Button
+                    onClick={() => composerRef.current?.focus()}
+                    className="rounded-xl font-semibold shadow-lg shadow-primary/15"
+                  >
                     <Pencil className="mr-2 h-4 w-4" /> Começar uma conversa
                   </Button>
                   <Button
@@ -878,6 +1108,12 @@ export function ChatApp({ userId }: { userId: string }) {
           {visibleMessages.map((m, i) => {
             const p = profiles[m.user_id];
             const isMine = m.user_id === userId;
+            const messageReactions = reactions.filter((reaction) => reaction.message_id === m.id);
+            const reactionCounts = Array.from(new Set(messageReactions.map((reaction) => reaction.reaction))).map((reaction) => ({
+              reaction,
+              count: messageReactions.filter((item) => item.reaction === reaction).length,
+              mine: messageReactions.some((item) => item.user_id === userId && item.reaction === reaction),
+            }));
             const previous = visibleMessages[i - 1];
             const messageDate = new Date(m.created_at);
             const previousDate = previous ? new Date(previous.created_at) : null;
@@ -904,6 +1140,7 @@ export function ChatApp({ userId }: { userId: string }) {
                   </div>
                 )}
                 <div
+                  id={`message-${m.id}`}
                   className={`message-row group mx-auto flex w-full max-w-[920px] gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/45 sm:px-3 ${isMine ? "justify-end" : ""} ${grouped ? "" : "mt-3"}`}
                 >
                   <div className={`w-9 shrink-0 ${isMine ? "order-2" : ""}`}>
@@ -918,9 +1155,13 @@ export function ChatApp({ userId }: { userId: string }) {
                       </Button>
                     )}
                   </div>
-                  <div className={`min-w-0 ${isMine ? "order-1 max-w-[82%] text-right" : "flex-1"}`}>
+                  <div
+                    className={`min-w-0 ${isMine ? "order-1 max-w-[82%] text-right" : "flex-1"}`}
+                  >
                     {!grouped && (
-                      <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${isMine ? "justify-end" : ""}`}>
+                      <div
+                        className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${isMine ? "justify-end" : ""}`}
+                      >
                         <Button
                           variant="ghost"
                           onClick={() => p && setViewing(p)}
@@ -933,7 +1174,7 @@ export function ChatApp({ userId }: { userId: string }) {
                             @{p.username}
                           </span>
                         )}
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="message-timestamp text-[11px] text-muted-foreground">
                           {messageDate.toLocaleTimeString("pt-BR", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -941,7 +1182,43 @@ export function ChatApp({ userId }: { userId: string }) {
                         </span>
                       </div>
                     )}
-                    {IMG_RE.test(m.content) ? (
+                    {m.reply_to && (
+                      <div
+                        className={`mb-1 max-w-full truncate border-l-2 border-primary/60 px-2 py-1 text-left text-xs text-muted-foreground ${isMine ? "ml-auto" : ""}`}
+                      >
+                        <CornerUpLeft className="mr-1 inline h-3 w-3" />
+                        {(() => {
+                          const source = messages.find((item) => item.id === m.reply_to);
+                          return source
+                            ? `Resposta a ${nameOf(profiles[source.user_id])}: ${source.content.slice(0, 120)}`
+                            : "Resposta a uma mensagem anterior";
+                        })()}
+                      </div>
+                    )}
+                    {editingMessageId === m.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          autoFocus
+                          value={editingContent}
+                          onChange={(event) => setEditingContent(event.target.value)}
+                          maxLength={2000}
+                          className="min-h-20 w-full resize-y rounded-lg border border-input bg-background p-2 text-sm"
+                          aria-label="Editar mensagem"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingMessageId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button size="sm" onClick={() => void saveMessageEdit(m.id)}>
+                            Salvar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : IMG_RE.test(m.content) ? (
                       <img
                         src={m.content}
                         alt=""
@@ -950,7 +1227,9 @@ export function ChatApp({ userId }: { userId: string }) {
                       />
                     ) : (
                       m.content && (
-                        <p className={`whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all ${isMine ? "message-own-bubble text-white" : ""}`}>
+                        <p
+                          className={`message-content whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all ${isMine ? "message-own-bubble text-white" : ""}`}
+                        >
                           <MessageText
                             text={m.content}
                             byName={profilesByUsername}
@@ -959,7 +1238,70 @@ export function ChatApp({ userId }: { userId: string }) {
                         </p>
                       )
                     )}
+                    {m.edited_at && (
+                      <span className="ml-1 text-[10px] text-muted-foreground">(editada)</span>
+                    )}
                     {m.attachment_url && <Attachment m={m} />}
+                    <div className={`mt-1 flex flex-wrap items-center gap-1 ${isMine ? "justify-end" : ""}`}>
+                      {reactionCounts.map(({ reaction, count, mine }) => (
+                        <Button key={reaction} variant="outline" size="sm" onClick={() => void toggleReaction(m.id, reaction)} aria-pressed={mine} aria-label={`${count} reação ${reaction}${mine ? ", sua reação" : ""}`} className={`h-7 gap-1 rounded-full px-2 text-xs ${mine ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}>
+                          <span>{reaction}</span><span>{count}</span>
+                        </Button>
+                      ))}
+                      <Popover>
+                        <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Adicionar reação" className="h-7 w-7 text-muted-foreground"><Smile className="h-4 w-4" /></Button></PopoverTrigger>
+                        <PopoverContent align={isMine ? "end" : "start"} className="w-52 p-2"><div className="grid grid-cols-5 gap-1">{["👍", "❤️", "😂", "😮", "🎉"].map((reaction) => <Button key={reaction} variant="ghost" size="icon" aria-label={`Reagir ${reaction}`} className="text-lg" onClick={() => void toggleReaction(m.id, reaction)}>{reaction}</Button>)}</div></PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <div
+                    className={`message-actions flex shrink-0 items-start gap-0.5 ${isMine ? "order-3" : ""}`}
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setReplyingTo(m);
+                        composerRef.current?.focus();
+                      }}
+                      className="h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                      aria-label="Responder mensagem"
+                    >
+                      <CornerUpLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setThreadRoot(m.reply_to ? messages.find((item) => item.id === m.reply_to) ?? m : m)}
+                      className="relative h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                      aria-label={`Abrir thread${messages.filter((item) => item.reply_to === m.id).length ? `, ${messages.filter((item) => item.reply_to === m.id).length} respostas` : ""}`}
+                      title="Abrir thread"
+                    >
+                      <MessageSquareText className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => communityTools.toggleSavedMessage(m)}
+                      className={`h-8 w-8 p-1 opacity-0 transition group-hover:opacity-100 focus:opacity-100 ${communityTools.savedMessages.some((saved) => saved.id === m.id) ? "text-primary opacity-100" : "text-muted-foreground"}`}
+                      aria-label={
+                        communityTools.savedMessages.some((saved) => saved.id === m.id)
+                          ? "Remover mensagem salva"
+                          : "Salvar mensagem"
+                      }
+                    >
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
+                    {isMine && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingMessageId(m.id);
+                          setEditingContent(m.content);
+                        }}
+                        className="h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                        aria-label="Editar mensagem"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   {(m.user_id === userId || status?.isAdmin) && (
                     <Button
@@ -981,6 +1323,24 @@ export function ChatApp({ userId }: { userId: string }) {
           onSubmit={send}
           className="message-compose mx-auto w-full max-w-[920px] shrink-0 px-3 pb-5 pt-2 sm:px-5 xl:px-8"
         >
+          {replyingTo && (
+            <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-panel px-3 py-2 text-xs">
+              <span className="truncate text-muted-foreground">
+                Respondendo a{" "}
+                <strong className="text-foreground">{nameOf(profiles[replyingTo.user_id])}</strong>:{" "}
+                {replyingTo.content.slice(0, 100) || "anexo"}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyingTo(null)}
+                aria-label="Cancelar resposta"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           {pendingFile && (
             <div className="mb-2 flex items-center gap-2 rounded-md bg-card px-3 py-2 text-sm">
               <FileText className="h-4 w-4 text-primary" />
@@ -1176,7 +1536,7 @@ export function ChatApp({ userId }: { userId: string }) {
                   value={`${channel.name} ${channel.kind}`}
                   onSelect={() => {
                     if (channel.kind === "voice") voice.join(channel.id);
-                    else setActive(channel.id);
+                    else navigateToChannel(channel.id);
                     setNavOpen(false);
                     setCommandOpen(false);
                   }}
@@ -1189,6 +1549,22 @@ export function ChatApp({ userId }: { userId: string }) {
             </CommandGroup>
           )}
           <CommandGroup heading="Ações rápidas">
+            <CommandItem
+              onSelect={() => {
+                setSocialOpen(true);
+                setCommandOpen(false);
+              }}
+            >
+              <Users /> Amigos e mensagens privadas
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setPreferencesOpen(true);
+                setCommandOpen(false);
+              }}
+            >
+              <Palette /> Aparência e preferências
+            </CommandItem>
             <CommandItem
               onSelect={() => {
                 setSearchOpen(true);
@@ -1247,7 +1623,9 @@ export function ChatApp({ userId }: { userId: string }) {
                   }}
                 >
                   <Users /> {nameOf(profile)}
-                  <CommandShortcut>{online.includes(profile.id) ? "Online" : "Offline"}</CommandShortcut>
+                  <CommandShortcut>
+                    {online.includes(profile.id) ? "Online" : "Offline"}
+                  </CommandShortcut>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -1280,6 +1658,48 @@ export function ChatApp({ userId }: { userId: string }) {
           onLogout={() => supabase.auth.signOut()}
         />
       )}
+      <AppPreferencesDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} />
+      <SavedMessagesDialog
+        open={savedMessagesOpen}
+        onOpenChange={setSavedMessagesOpen}
+        messages={communityTools.savedMessages}
+        channelNames={Object.fromEntries(channels.map((channel) => [channel.id, channel.name]))}
+        onOpenChannel={navigateToChannel}
+        onRemove={communityTools.toggleSavedMessage}
+      />
+      <SocialCenter
+        open={socialOpen}
+        onOpenChange={setSocialOpen}
+        userId={userId}
+        profiles={profiles}
+        onlineIds={online}
+      />
+      <CommunityHub
+        open={communityOpen}
+        onOpenChange={setCommunityOpen}
+        userId={userId}
+        profiles={profiles}
+        messages={messages}
+        isAdmin={!!status?.isAdmin}
+      />
+      <MessageThreadDialog
+        root={threadRoot}
+        userId={userId}
+        profiles={profiles}
+        onClose={() => setThreadRoot(null)}
+      />
+      <MessageSearchDialog
+        open={messageSearchOpen}
+        onOpenChange={setMessageSearchOpen}
+        channels={channels.filter((channel) => channel.kind === "text")}
+        profiles={profiles}
+        onOpenMessage={(message) => {
+          setSearchTarget(message);
+          setSearchReadyId(null);
+          setSearchJumpVersion((version) => version + 1);
+          navigateToChannel(message.channel_id);
+        }}
+      />
     </div>
   );
 }
@@ -1368,12 +1788,16 @@ function ChannelBtn({
   unread = 0,
   onClick,
   onDelete,
+  isFavorite = false,
+  onToggleFavorite,
   children,
 }: {
   active: boolean;
   unread?: number;
   onClick: () => void;
   onDelete?: (() => void) | undefined;
+  isFavorite?: boolean;
+  onToggleFavorite?: (() => void) | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -1392,6 +1816,17 @@ function ChannelBtn({
           </span>
         )}
       </Button>
+      {onToggleFavorite && (
+        <Button
+          variant="ghost"
+          onClick={onToggleFavorite}
+          className={`mr-0.5 h-7 w-7 shrink-0 p-1 transition hover:bg-accent ${isFavorite ? "text-primary" : "text-muted-foreground opacity-0 group-hover/ch:opacity-100 focus:opacity-100"}`}
+          aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+        >
+          <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`} />
+        </Button>
+      )}
       {onDelete && (
         <Button
           variant="ghost"
