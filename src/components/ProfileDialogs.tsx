@@ -1,8 +1,24 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { toast } from "sonner";
-import { X, Camera, ImagePlus, Trash2, UserRound, Palette } from "lucide-react";
+import {
+  Activity,
+  Camera,
+  ChevronDown,
+  Gamepad2,
+  Heart,
+  ImagePlus,
+  LayoutGrid,
+  MessageCircle,
+  MoreHorizontal,
+  Palette,
+  Plus,
+  Sparkles,
+  UserRound,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
+import cityBanner from "@/assets/bg.jpg";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -257,16 +273,7 @@ function ColorField({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="space-y-3 border-b border-border/70 pb-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-/** Configurações de usuário em tela cheia, estilo Discord. */
+/** Personalização do perfil em uma tela ampla com prévia ao vivo. */
 export function EditProfile({
   open,
   onOpenChange,
@@ -281,6 +288,7 @@ export function EditProfile({
   onLogout: () => void;
 }) {
   const [tab, setTab] = useState<"account" | "profile">("profile");
+  const [profileTab, setProfileTab] = useState<"wall" | "activity" | "wishlist">("wall");
   const [draft, setDraft] = useState<Profile>(me);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -313,346 +321,501 @@ export function EditProfile({
 
   async function save() {
     setBusy("save");
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: draft.display_name?.trim().slice(0, 32) || null,
-        pronouns: draft.pronouns?.trim().slice(0, 40) || null,
-        bio: draft.bio?.slice(0, 190) || null,
-        custom_status: draft.custom_status?.trim().slice(0, 80) || null,
-        avatar_url: draft.avatar_url,
-        banner_url: draft.banner_url,
-        banner_color: draft.banner_color ?? null,
-        theme_primary: draft.theme_primary ?? null,
-        theme_accent: draft.theme_accent ?? null,
-      })
-      .eq("id", me.id);
-    setBusy(null);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: draft.display_name?.trim().slice(0, 32) || null,
+          pronouns: draft.pronouns?.trim().slice(0, 40) || null,
+          bio: draft.bio?.slice(0, 190) || null,
+          custom_status: draft.custom_status?.trim().slice(0, 80) || null,
+          avatar_url: draft.avatar_url,
+          banner_url: draft.banner_url,
+          banner_color: draft.banner_color ?? null,
+          theme_primary: draft.theme_primary ?? null,
+          theme_accent: draft.theme_accent ?? null,
+        })
+        .eq("id", me.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      onSaved(draft);
+      toast.success("Alterações salvas");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
     }
-    onSaved(draft);
-    toast.success("Alterações salvas");
   }
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex animate-in fade-in zoom-in-95 duration-150">
-      <nav className="hidden w-[260px] shrink-0 justify-end border-r border-border/60 bg-panel py-14 pr-3 sm:flex">
-        <div className="w-52 space-y-0.5">
-          <p className="px-2.5 pb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            Configurações de usuário
-          </p>
-          <NavItem active={tab === "account"} onClick={() => setTab("account")}>
-            <UserRound className="mr-2 inline h-4 w-4" /> Minha conta
-          </NavItem>
-          <NavItem active={tab === "profile"} onClick={() => setTab("profile")}>
-            <Palette className="mr-2 inline h-4 w-4" /> Perfil
-          </NavItem>
-          <div className="mx-2.5 my-3 h-px bg-border" />
-          <NavItem active={false} onClick={onLogout} danger>
-            Sair
-          </NavItem>
-        </div>
-      </nav>
-
-      <div className="relative min-w-0 flex-1 overflow-y-auto bg-background">
-        <div className="mx-auto max-w-[980px] px-5 py-10 pb-32 sm:px-10 sm:py-14">
-          <div className="mb-8 grid gap-1 sm:hidden">
-            <NavItem active={tab === "account"} onClick={() => setTab("account")}>
-              Minha conta
-            </NavItem>
-            <NavItem active={tab === "profile"} onClick={() => setTab("profile")}>
-              Perfil
-            </NavItem>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#080607] text-[#f3eff2] animate-in fade-in duration-150">
+      <div className="grid min-h-screen grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[226px_minmax(360px,0.9fr)_minmax(360px,1fr)]">
+        <aside className="border-b border-white/[0.08] bg-[#0c0c0e] md:row-span-2 md:border-r md:border-b-0 xl:row-span-1">
+          <div className="flex h-14 items-center justify-between border-b border-white/[0.07] px-4">
+            <button
+              onClick={() => setTab(tab === "profile" ? "account" : "profile")}
+              className="flex items-center gap-2 text-sm font-semibold"
+            >
+              {tab === "profile" ? "Perfil principal" : "Minha conta"}
+              <ChevronDown className="h-4 w-4 text-white/50" />
+            </button>
+            <button
+              onClick={() => setTab(tab === "profile" ? "account" : "profile")}
+              className="rounded p-1 text-white/50 hover:bg-white/[0.08] hover:text-white"
+              aria-label="Alternar seção"
+            >
+              <UserRound className="h-4 w-4" />
+            </button>
           </div>
 
-          {tab === "account" ? (
-            <>
-              <div className="mb-6">
-                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Configurações de usuário
-                </p>
-                <h2 className="font-sans text-2xl font-bold">Minha conta</h2>
+          <div className="max-h-[calc(100vh-56px)] space-y-6 overflow-y-auto p-4">
+            <div className="space-y-2">
+              <SideLabel>Placa de identificação</SideLabel>
+              <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#1b1b1e] p-2">
+                <Avatar p={draft} size={28} />
+                <span className="min-w-0 flex-1 truncate rounded-full bg-white/[0.13] px-2 py-1 text-xs text-white/65">
+                  @{draft.username}
+                </span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#161619]">
+                  <Plus className="h-4 w-4" />
+                </span>
               </div>
-              <div className="overflow-hidden rounded-lg bg-rail">
-                <div
-                  className="h-24"
-                  style={{ background: draft.banner_color || "var(--color-accent)" }}
-                >
-                  {draft.banner_url && (
-                    <img src={draft.banner_url} alt="" className="h-full w-full object-cover" />
-                  )}
+            </div>
+
+            <div className="space-y-2">
+              <SideLabel>Avatar e decorações</SideLabel>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex h-[94px] items-center justify-center rounded-lg border border-white/[0.08] bg-[#1b1b1e]">
+                  <Avatar p={draft} size={66} />
                 </div>
-                <div className="flex items-end gap-4 px-4 pb-4">
-                  <div className="-mt-10 rounded-full bg-rail p-1.5">
-                    <Avatar p={draft} size={80} />
+                <label className="flex h-[94px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-white/[0.08] bg-[#1b1b1e] text-xs text-white/65 transition hover:bg-white/[0.08]">
+                  <Camera className="h-5 w-5" />
+                  {busy === "avatar" ? "Enviando…" : "Alterar avatar"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => pick("avatar", e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+              {draft.avatar_url && (
+                <button
+                  onClick={() => set({ avatar_url: null })}
+                  className="text-xs text-white/50 hover:text-white"
+                >
+                  Remover avatar
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <SideLabel>Estilo do nome exibido</SideLabel>
+              <div className="relative">
+                <Input
+                  value={draft.display_name ?? ""}
+                  onChange={(e) => set({ display_name: e.target.value })}
+                  placeholder={draft.username}
+                  maxLength={32}
+                  className="h-10 border-white/[0.08] bg-[#1b1b1e] pr-10 font-semibold"
+                />
+                <Sparkles className="absolute right-3 top-3 h-4 w-4 text-white/60" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <SideLabel>Tema e faixa</SideLabel>
+                <Palette className="h-4 w-4 text-white/45" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <ColorField
+                  label="Cor do perfil"
+                  value={draft.banner_color}
+                  onChange={(v) => set({ banner_color: v })}
+                />
+                <label className="relative flex h-[94px] cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-[#1b1b1e] text-xs">
+                  {draft.banner_url ? (
+                    <img
+                      src={draft.banner_url}
+                      alt="Faixa do perfil"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={cityBanner}
+                      alt=""
+                      className="h-full w-full object-cover opacity-70"
+                    />
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 bg-black/65 px-1 py-1.5 text-center">
+                    {busy === "banner" ? "Enviando…" : "Alterar faixa"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => pick("banner", e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+              {draft.banner_url && (
+                <button
+                  onClick={() => set({ banner_url: null })}
+                  className="text-xs text-white/50 hover:text-white"
+                >
+                  Remover faixa
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <SideLabel>Efeitos de perfil e molduras</SideLabel>
+              <div className="flex items-center gap-2">
+                <div className="relative h-[82px] flex-1 overflow-hidden rounded-lg border border-white/[0.08] bg-[#1b1b1e]">
+                  <img
+                    src={draft.banner_url || cityBanner}
+                    alt=""
+                    className="h-full w-full object-cover opacity-60"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Avatar p={draft} size={38} />
                   </div>
-                  <p className="pb-2 text-xl font-bold">{nameOf(draft)}</p>
-                  <Button size="sm" className="mb-2 ml-auto" onClick={() => setTab("profile")}>
-                    Editar perfil
+                </div>
+                <button
+                  onClick={() => toast("Molduras de perfil estarão disponíveis em breve.")}
+                  className="flex h-[82px] flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/[0.15] bg-[#171719] text-xs text-white/55 hover:bg-white/[0.05]"
+                >
+                  <Plus className="h-5 w-5" />
+                  Ver molduras
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t border-white/[0.08] pt-4">
+              <SideLabel>Sobre o perfil</SideLabel>
+              <Input
+                value={draft.pronouns ?? ""}
+                onChange={(e) => set({ pronouns: e.target.value })}
+                placeholder="Pronomes (ex.: ela/dela)"
+                maxLength={40}
+                className="border-white/[0.08] bg-[#1b1b1e]"
+              />
+              <Input
+                value={draft.custom_status ?? ""}
+                onChange={(e) => set({ custom_status: e.target.value })}
+                placeholder="Status personalizado"
+                maxLength={80}
+                className="border-white/[0.08] bg-[#1b1b1e]"
+              />
+              <Textarea
+                value={draft.bio ?? ""}
+                onChange={(e) => set({ bio: e.target.value })}
+                maxLength={190}
+                rows={3}
+                placeholder="Conte um pouco sobre você..."
+                className="border-white/[0.08] bg-[#1b1b1e]"
+              />
+              <p className="text-right text-[11px] text-white/40">
+                {190 - (draft.bio?.length ?? 0)} caracteres restantes
+              </p>
+              <ColorField
+                label="Cor principal do tema"
+                value={draft.theme_primary}
+                onChange={(v) => set({ theme_primary: v })}
+              />
+              <ColorField
+                label="Cor de destaque do tema"
+                value={draft.theme_accent}
+                onChange={(v) => set({ theme_accent: v })}
+              />
+            </div>
+
+            <div className="space-y-1 border-t border-white/[0.08] pt-4">
+              <button
+                onClick={() => setTab("account")}
+                className="w-full rounded-md px-2 py-2 text-left text-sm text-white/65 hover:bg-white/[0.06] hover:text-white"
+              >
+                Minha conta
+              </button>
+              <button
+                onClick={onLogout}
+                className="w-full rounded-md px-2 py-2 text-left text-sm text-red-300 hover:bg-red-400/10"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        <main className="relative flex min-h-[620px] items-start justify-center overflow-hidden border-b border-white/[0.08] bg-[#120807] px-5 py-12 md:border-r xl:min-h-screen">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.18]"
+            style={{
+              backgroundImage: `linear-gradient(180deg, transparent 30%, #080506 100%), url(${cityBanner})`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          />
+          <div className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-t-[18px] border border-white/[0.1] bg-[#0c0909]/95 shadow-2xl shadow-black/50">
+            <div className="relative h-44 overflow-hidden bg-[#21161a]">
+              <img
+                src={draft.banner_url || cityBanner}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+              <button
+                onClick={() => document.getElementById("profile-banner-upload")?.click()}
+                className="absolute right-3 top-3 rounded-md bg-black/45 p-2 text-white/80 hover:bg-black/70"
+                aria-label="Alterar faixa do perfil"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </button>
+              <input
+                id="profile-banner-upload"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => pick("banner", e.target.files?.[0])}
+              />
+            </div>
+            <div className="relative px-6 pb-8">
+              <div className="-mt-12 mb-3 flex items-end justify-between">
+                <div className="rounded-full bg-[#0c0909] p-1.5">
+                  <Avatar
+                    p={draft}
+                    size={88}
+                    status={draft.status ?? "online"}
+                    ring="border-[#0c0909]"
+                  />
+                </div>
+                <span className="mb-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-2.5 py-1 text-[11px] text-white/75">
+                  Calvosfera
+                </span>
+              </div>
+              {tab === "profile" ? (
+                <>
+                  <h1 className="font-sans text-2xl font-bold tracking-tight">{nameOf(draft)}</h1>
+                  <p className="mt-1 text-sm text-white/55">
+                    @{draft.username}
+                    {draft.pronouns && ` · ${draft.pronouns}`}
+                  </p>
+                  {draft.custom_status && (
+                    <div className="mt-4 rounded-lg border border-white/[0.08] bg-white/[0.05] px-3 py-2 text-sm text-white/80">
+                      {draft.custom_status}
+                    </div>
+                  )}
+                  <div className="my-5 h-px bg-white/[0.1]" />
+                  {draft.bio ? (
+                    <section className="mb-6">
+                      <p className="mb-2 text-xs font-bold text-white/60">Sobre mim</p>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+                        {draft.bio}
+                      </p>
+                    </section>
+                  ) : (
+                    <p className="mb-6 text-sm italic text-white/45">
+                      Adicione uma bio para se apresentar.
+                    </p>
+                  )}
+                  <section className="mb-6">
+                    <p className="mb-2 text-xs font-bold text-white/60">Membro desde</p>
+                    <p className="text-sm text-white/85">
+                      {draft.created_at
+                        ? new Date(draft.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "Agora"}
+                    </p>
+                  </section>
+                  <section className="mb-6">
+                    <p className="mb-2 text-xs font-bold text-white/60">Conexões</p>
+                    <button
+                      onClick={() => toast("Conexões estarão disponíveis em breve.")}
+                      className="text-sm text-white/70 transition hover:text-white"
+                    >
+                      <Plus className="mr-1 inline h-4 w-4" /> Adicionar conexão
+                    </button>
+                  </section>
+                  <div className="flex gap-2">
+                    <button className="flex items-center gap-2 rounded-lg bg-white/[0.13] px-4 py-2 text-sm font-semibold text-white/70">
+                      <MessageCircle className="h-4 w-4" /> Mensagem
+                    </button>
+                    <button
+                      className="rounded-lg bg-white/[0.1] p-2 text-white/80"
+                      aria-label="Mais opções"
+                    >
+                      <MoreHorizontal className="h-5 w-5" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-white/[0.08] bg-[#191416] p-5">
+                  <p className="font-semibold">{draft.display_name || draft.username}</p>
+                  <p className="mt-2 text-sm text-white/55">Nome de usuário: @{draft.username}</p>
+                  <p className="mt-4 text-xs text-white/40">
+                    Seu nome de usuário é usado para entrar e não pode ser alterado.
+                  </p>
+                  <Button size="sm" className="mt-4" onClick={() => setTab("profile")}>
+                    Voltar ao perfil
                   </Button>
                 </div>
-                <div className="m-4 mt-0 space-y-4 rounded-lg bg-panel p-4">
-                  <Row label="Nome exibido" value={draft.display_name || "Não definido"} />
-                  <Row label="Nome de usuário" value={draft.username} />
-                  <p className="text-xs text-muted-foreground">
-                    O nome de usuário é usado para entrar e não pode ser alterado.
-                  </p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-8">
-                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Configurações de usuário
-                </p>
-                <h2 className="font-sans text-2xl font-bold">Personalização do perfil</h2>
-                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Personalize como você aparece para outras pessoas em Calvosfera.
-                </p>
-              </div>
-              <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className="space-y-6">
-                  <Section title="Nome de exibição">
-                    <Input
-                      value={draft.display_name ?? ""}
-                      onChange={(e) => set({ display_name: e.target.value })}
-                      placeholder={draft.username}
-                      maxLength={32}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Este é o nome que as pessoas verão no seu perfil.
-                    </p>
-                  </Section>
-                  <Section title="Avatar">
-                    <div className="flex flex-wrap items-center gap-4">
-                      <div className="rounded-full bg-rail p-1.5">
-                        <Avatar p={draft} size={76} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <UploadBtn
-                          busy={busy === "avatar"}
-                          onFile={(f) => pick("avatar", f)}
-                          icon={<Camera className="h-4 w-4" />}
-                        >
-                          Alterar avatar
-                        </UploadBtn>
-                        {draft.avatar_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => set({ avatar_url: null })}
-                          >
-                            Remover
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      PNG, JPG ou GIF animado, até 10 MB.
-                    </p>
-                  </Section>
-                  <Section title="Banner do perfil">
-                    <div className="relative h-28 overflow-hidden rounded-lg border border-border bg-accent">
-                      {draft.banner_url ? (
-                        <img
-                          src={draft.banner_url}
-                          alt="Prévia do banner"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-full"
-                          style={{ background: draft.banner_color || "var(--color-accent)" }}
-                        />
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
-                        <UploadBtn
-                          busy={busy === "banner"}
-                          onFile={(f) => pick("banner", f)}
-                          icon={<ImagePlus className="h-4 w-4" />}
-                        >
-                          Alterar banner
-                        </UploadBtn>
-                        {draft.banner_url && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => set({ banner_url: null })}
-                          >
-                            <Trash2 className="h-4 w-4" /> Remover
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <ColorField
-                      label="Cor de fundo"
-                      value={draft.banner_color}
-                      onChange={(v) => set({ banner_color: v })}
-                    />
-                  </Section>
-                  <Section title="Pronomes">
-                    <Input
-                      value={draft.pronouns ?? ""}
-                      onChange={(e) => set({ pronouns: e.target.value })}
-                      placeholder="Ex.: ela/dela"
-                      maxLength={40}
-                    />
-                  </Section>
-                  <Section title="Tema do perfil">
-                    <p className="text-sm text-muted-foreground">
-                      Escolha as cores que aparecem no cartão do seu perfil.
-                    </p>
-                    <div className="space-y-4">
-                      <ColorField
-                        label="Cor principal"
-                        value={draft.theme_primary}
-                        onChange={(v) => set({ theme_primary: v })}
-                      />
-                      <ColorField
-                        label="Cor de destaque"
-                        value={draft.theme_accent}
-                        onChange={(v) => set({ theme_accent: v })}
-                      />
-                    </div>
-                  </Section>
-                  <Section title="Status personalizado">
-                    <Input
-                      value={draft.custom_status ?? ""}
-                      onChange={(e) => set({ custom_status: e.target.value })}
-                      placeholder="O que está acontecendo?"
-                      maxLength={80}
-                    />
-                    <p className="text-right text-xs text-muted-foreground">
-                      {80 - (draft.custom_status?.length ?? 0)} caracteres restantes
-                    </p>
-                  </Section>
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      Sobre mim
-                    </p>
-                    <Textarea
-                      value={draft.bio ?? ""}
-                      onChange={(e) => set({ bio: e.target.value })}
-                      maxLength={190}
-                      rows={4}
-                      placeholder="Conte um pouco sobre você..."
-                    />
-                    <p className="text-right text-xs text-muted-foreground">
-                      {190 - (draft.bio?.length ?? 0)} caracteres restantes
-                    </p>
-                  </div>
-                </div>
-                <aside>
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    Prévia do perfil
-                  </p>
-                  <div className="lg:sticky lg:top-6">
-                    <ProfileCard p={draft} status={draft.status} />
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                    Assim seu perfil aparecerá para outras pessoas.
-                  </p>
-                </aside>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="fixed right-6 top-14 hidden flex-col items-center gap-1 text-muted-foreground sm:flex">
+              )}
+            </div>
+          </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-muted-foreground transition hover:border-foreground hover:text-foreground"
+            className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.16] bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
             aria-label="Fechar"
           >
             <X className="h-4 w-4" />
           </button>
-          <span className="text-xs font-bold">ESC</span>
-        </div>
-        <button
-          onClick={() => onOpenChange(false)}
-          className="fixed right-4 top-4 rounded p-2 hover:bg-accent sm:hidden"
-          aria-label="Fechar"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        </main>
 
-        {dirty && (
-          <div className="fixed bottom-5 left-1/2 z-10 flex w-[min(700px,calc(100%-2rem))] -translate-x-1/2 items-center gap-3 rounded-lg bg-rail px-4 py-2.5 shadow-glow animate-in slide-in-from-bottom-4">
-            <p className="flex-1 text-sm">Cuidado — você tem alterações que não foram salvas!</p>
-            <Button variant="ghost" size="sm" onClick={() => setDraft(me)}>
-              Redefinir
-            </Button>
-            <Button
-              size="sm"
-              disabled={!!busy}
-              onClick={save}
-              className="bg-online text-background hover:bg-online/90"
+        <section className="min-w-0 bg-[#0e0b0c] px-6 py-14 md:col-span-2 md:px-8 xl:col-span-1 xl:px-7">
+          <div className="flex items-center gap-6 border-b border-white/[0.09]">
+            <ProfileNavItem active={profileTab === "wall"} onClick={() => setProfileTab("wall")}>
+              Mural
+            </ProfileNavItem>
+            <ProfileNavItem
+              active={profileTab === "activity"}
+              onClick={() => setProfileTab("activity")}
             >
-              {busy === "save" ? "Salvando…" : "Salvar alterações"}
-            </Button>
+              Atividade
+            </ProfileNavItem>
+            <ProfileNavItem
+              active={profileTab === "wishlist"}
+              onClick={() => setProfileTab("wishlist")}
+            >
+              Lista de desejos
+            </ProfileNavItem>
           </div>
-        )}
+
+          <div className="mt-6 flex items-center justify-between gap-3">
+            <p className="text-xs font-bold text-white/70">
+              {profileTab === "wall"
+                ? "Seus Widgets"
+                : profileTab === "activity"
+                  ? "Atividade recente"
+                  : "Lista de desejos"}
+            </p>
+            <button
+              onClick={() => toast("Widgets e integrações estarão disponíveis em breve.")}
+              className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-[#242123] px-3 py-2 text-xs font-medium text-white/75 transition hover:bg-white/[0.1]"
+            >
+              <Plus className="h-4 w-4" /> Adicionar widget
+            </button>
+          </div>
+
+          {profileTab === "wall" ? (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#21191b]">
+              <div className="relative min-h-[152px] overflow-hidden border-b border-white/[0.07] p-4">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#39272b] via-[#261d20] to-[#1c1719]" />
+                <div className="absolute -right-4 -top-10 h-48 w-48 rounded-full bg-fuchsia-300/[0.08] blur-3xl" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white/85">
+                    <Gamepad2 className="h-4 w-4 text-pink-200" /> Widget de jogos
+                  </div>
+                  <div className="mt-8 grid max-w-[78%] grid-cols-2 gap-x-5 gap-y-4">
+                    {["Nível", "Jogos", "Conquistas", "Atividade"].map((label) => (
+                      <div key={label} className="space-y-1.5">
+                        <div className="h-3 w-20 rounded-full bg-white/[0.12]" />
+                        <p className="text-[10px] text-white/50">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="rounded-xl border border-white/[0.07] bg-[#30282a] p-4">
+                  <p className="text-sm font-semibold">
+                    Conecte sua conta para ver suas estatísticas
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/55">
+                    Este widget não aparecerá no seu perfil até que você conecte uma conta.
+                  </p>
+                  <button
+                    onClick={() => toast("Integração de jogos estará disponível em breve.")}
+                    className="mt-3 rounded-md bg-white/[0.18] px-4 py-2 text-sm font-semibold transition hover:bg-white/[0.25]"
+                  >
+                    Conectar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex min-h-56 flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#171416] px-6 text-center">
+              {profileTab === "activity" ? (
+                <Activity className="mb-3 h-8 w-8 text-white/35" />
+              ) : (
+                <Heart className="mb-3 h-8 w-8 text-white/35" />
+              )}
+              <p className="text-sm font-semibold text-white/75">
+                {profileTab === "activity" ? "Sem atividade para mostrar" : "Sua lista está vazia"}
+              </p>
+              <p className="mt-1 max-w-xs text-xs leading-relaxed text-white/45">
+                {profileTab === "activity"
+                  ? "Quando você participar das conversas, suas atividades aparecerão aqui."
+                  : "Adicione seus jogos, animes e interesses favoritos ao seu perfil."}
+              </p>
+            </div>
+          )}
+          <p className="mt-5 flex items-center gap-2 text-xs text-white/35">
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Prévia do seu perfil público
+          </p>
+        </section>
       </div>
+
+      {dirty && (
+        <div className="fixed bottom-4 left-1/2 z-[60] flex w-[min(700px,calc(100%-2rem))] -translate-x-1/2 items-center gap-3 rounded-lg border border-white/[0.1] bg-[#242123] px-4 py-2.5 shadow-2xl animate-in slide-in-from-bottom-4">
+          <p className="flex-1 text-sm">Você tem alterações que ainda não foram salvas.</p>
+          <Button variant="ghost" size="sm" onClick={() => setDraft(me)}>
+            Redefinir
+          </Button>
+          <Button
+            size="sm"
+            disabled={!!busy}
+            onClick={save}
+            className="bg-online text-background hover:bg-online/90"
+          >
+            {busy === "save" ? "Salvando…" : "Salvar alterações"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
 
-function NavItem({
+function SideLabel({ children }: { children: ReactNode }) {
+  return <p className="text-xs font-semibold text-white/80">{children}</p>;
+}
+
+function ProfileNavItem({
   active,
   onClick,
   children,
-  danger,
 }: {
   active: boolean;
   onClick: () => void;
   children: ReactNode;
-  danger?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded px-2.5 py-2 text-left text-sm transition ${active ? "bg-accent font-medium text-foreground" : danger ? "text-dnd hover:bg-accent/60" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+      className={`relative shrink-0 pb-3 text-sm font-semibold transition ${
+        active ? "text-white" : "text-white/50 hover:text-white/80"
+      }`}
     >
       {children}
+      {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-white" />}
     </button>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-bold uppercase text-muted-foreground">{label}</p>
-      <p className="mt-0.5">{value}</p>
-    </div>
-  );
-}
-
-function UploadBtn({
-  busy,
-  onFile,
-  icon,
-  children,
-}: {
-  busy: boolean;
-  onFile: (f?: File) => void;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <label className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 focus-within:ring-2 focus-within:ring-ring">
-      {icon}
-      {busy ? "Enviando…" : children}
-      <input
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={(e) => onFile(e.target.files?.[0])}
-      />
-    </label>
   );
 }
