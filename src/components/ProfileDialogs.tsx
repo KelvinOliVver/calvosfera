@@ -89,10 +89,10 @@ function bannerStyle(p: Profile): CSSProperties {
   if (p.banner_color) return { background: p.banner_color };
   if (p.theme_primary) {
     return {
-      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, #292632), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, #18171d))`,
+      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, var(--panel)), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, var(--rail)))`,
     };
   }
-  return { background: "linear-gradient(120deg, #302a3c, #1e1c26)" };
+  return { background: "var(--gradient-sakura)" };
 }
 
 /** Card de perfil estilo Discord (popout). */
@@ -107,32 +107,32 @@ export function ProfileCard({
 }) {
   const hasDisplayName = !!p.display_name?.trim();
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#191324] shadow-2xl shadow-black/40">
+    <div className="w-full overflow-hidden rounded-lg border border-border bg-popover shadow-2xl shadow-glow">
       <div className="relative overflow-hidden">
         <div className="h-[118px] w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-scrim/5 via-transparent to-scrim/25" />
       </div>
       <div className="px-4 pb-4">
-        <div className="-mt-10 mb-3 flex items-end justify-between">
-          <div className="rounded-full bg-[#191324] p-1.5 shadow-lg shadow-black/30">
-            <Avatar p={p} size={76} status={status} ring="border-[#191324]" />
+        <div className="relative -mt-10 mb-3 flex items-end justify-between">
+          <div className="rounded-full bg-popover p-1.5 shadow-lg shadow-glow">
+            <Avatar p={p} size={76} status={status} ring="border-popover" />
           </div>
         </div>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-sans text-xl font-bold leading-tight tracking-tight text-white">
+            <h3 className="break-words font-sans text-xl font-bold leading-tight text-foreground">
               {nameOf(p)}
             </h3>
-            <p className="mt-0.5 truncate text-sm text-white/55">
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">
               @{p.username}
-              {p.pronouns && <span className="text-white/40"> · {p.pronouns}</span>}
+              {p.pronouns && <span className="text-muted-foreground"> · {p.pronouns}</span>}
             </p>
           </div>
           {p.theme_primary && (
             <span
-              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white/[0.06]"
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-border"
               style={{ background: p.theme_primary }}
               aria-label="Tema personalizado"
               title="Tema personalizado"
@@ -140,29 +140,29 @@ export function ProfileCard({
           )}
         </div>
         {p.custom_status && (
-          <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.035] px-3 py-2.5">
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+          <div className="mt-4 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
               {p.custom_status}
             </p>
           </div>
         )}
-        {(p.bio || p.created_at) && <div className="my-4 h-px bg-white/[0.08]" />}
+        {(p.bio || p.created_at) && <div className="my-4 h-px bg-border" />}
         {p.bio && (
           <section className="mb-4">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Sobre mim
             </p>
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
               {p.bio}
             </p>
           </section>
         )}
         {p.created_at && (
           <section>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Membro desde
             </p>
-            <p className="text-sm text-white/80">
+            <p className="text-sm text-foreground/90">
               {new Date(p.created_at).toLocaleDateString("pt-BR", {
                 day: "2-digit",
                 month: "short",
@@ -222,16 +222,16 @@ function ColorField({
     <div>
       <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">{label}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={() => onChange(null)}
           className={`h-9 w-9 rounded-md border bg-panel text-xs text-muted-foreground ${!value ? "ring-2 ring-ring" : ""}`}
           title="Padrão"
         >
           —
-        </button>
+        </Button>
         {SWATCHES.map((c) => (
-          <button
+          <Button variant="ghost"
             key={c}
             type="button"
             onClick={() => onChange(c)}
@@ -339,7 +339,7 @@ export function EditProfile({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex animate-in fade-in zoom-in-95 duration-150">
+    <div role="dialog" aria-modal="true" aria-label="Configurações de usuário" className="fixed inset-0 z-50 flex animate-in fade-in duration-150">
       <nav className="hidden w-[260px] shrink-0 justify-end border-r border-border/60 bg-panel py-14 pr-3 sm:flex">
         <div className="w-52 space-y-0.5">
           <p className="px-2.5 pb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -359,7 +359,7 @@ export function EditProfile({
       </nav>
 
       <div className="relative min-w-0 flex-1 overflow-y-auto bg-background">
-        <div className="mx-auto max-w-[980px] px-5 py-10 pb-32 sm:px-10 sm:py-14">
+        <div className="mx-auto max-w-[980px] px-5 py-16 pb-40 sm:px-10 sm:py-14 sm:pb-32 xl:pr-16">
           <div className="mb-8 grid gap-1 sm:hidden">
             <NavItem active={tab === "account"} onClick={() => setTab("account")}>
               Minha conta
@@ -386,16 +386,16 @@ export function EditProfile({
                     <img src={draft.banner_url} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
-                <div className="flex items-end gap-4 px-4 pb-4">
+                <div className="relative flex flex-wrap items-end gap-3 px-4 pb-4">
                   <div className="-mt-10 rounded-full bg-rail p-1.5">
                     <Avatar p={draft} size={80} />
                   </div>
-                  <p className="pb-2 text-xl font-bold">{nameOf(draft)}</p>
+                  <p className="min-w-0 break-words pb-2 text-xl font-bold">{nameOf(draft)}</p>
                   <Button size="sm" className="mb-2 ml-auto" onClick={() => setTab("profile")}>
                     Editar perfil
                   </Button>
                 </div>
-                <div className="m-4 mt-0 space-y-4 rounded-lg bg-panel p-4">
+                <div className="space-y-4 border-t border-border px-4 py-5">
                   <Row label="Nome exibido" value={draft.display_name || "Não definido"} />
                   <Row label="Nome de usuário" value={draft.username} />
                   <p className="text-xs text-muted-foreground">
@@ -412,10 +412,10 @@ export function EditProfile({
                 </p>
                 <h2 className="font-sans text-2xl font-bold">Personalização do perfil</h2>
                 <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Personalize como você aparece para outras pessoas em Calvosfera.
+                  
                 </p>
               </div>
-              <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_300px]">
                 <div className="space-y-6">
                   <Section title="Nome de exibição">
                     <Input
@@ -425,7 +425,7 @@ export function EditProfile({
                       maxLength={32}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Este é o nome que as pessoas verão no seu perfil.
+                      
                     </p>
                   </Section>
                   <Section title="Avatar">
@@ -470,7 +470,7 @@ export function EditProfile({
                           style={{ background: draft.banner_color || "var(--color-accent)" }}
                         />
                       )}
-                      <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
+                      <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-scrim to-transparent p-3 pt-8">
                         <UploadBtn
                           busy={busy === "banner"}
                           onFile={(f) => pick("banner", f)}
@@ -505,7 +505,7 @@ export function EditProfile({
                   </Section>
                   <Section title="Tema do perfil">
                     <p className="text-sm text-muted-foreground">
-                      Escolha as cores que aparecem no cartão do seu perfil.
+                      
                     </p>
                     <div className="space-y-4">
                       <ColorField
@@ -551,11 +551,11 @@ export function EditProfile({
                   <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                     Prévia do perfil
                   </p>
-                  <div className="lg:sticky lg:top-6">
+                  <div className="xl:sticky xl:top-6">
                     <ProfileCard p={draft} status={draft.status} />
                   </div>
                   <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                    Assim seu perfil aparecerá para outras pessoas.
+                    
                   </p>
                 </aside>
               </div>
@@ -564,26 +564,26 @@ export function EditProfile({
         </div>
 
         <div className="fixed right-6 top-14 hidden flex-col items-center gap-1 text-muted-foreground sm:flex">
-          <button
+          <Button variant="ghost"
             onClick={() => onOpenChange(false)}
             className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-muted-foreground transition hover:border-foreground hover:text-foreground"
             aria-label="Fechar"
           >
             <X className="h-4 w-4" />
-          </button>
-          <span className="text-xs font-bold">ESC</span>
+          </Button>
+          
         </div>
-        <button
+        <Button variant="ghost"
           onClick={() => onOpenChange(false)}
           className="fixed right-4 top-4 rounded p-2 hover:bg-accent sm:hidden"
           aria-label="Fechar"
         >
           <X className="h-5 w-5" />
-        </button>
+        </Button>
 
         {dirty && (
-          <div className="fixed bottom-5 left-1/2 z-10 flex w-[min(700px,calc(100%-2rem))] -translate-x-1/2 items-center gap-3 rounded-lg bg-rail px-4 py-2.5 shadow-glow animate-in slide-in-from-bottom-4">
-            <p className="flex-1 text-sm">Cuidado — você tem alterações que não foram salvas!</p>
+          <div className="fixed bottom-5 left-1/2 z-10 flex w-[min(700px,calc(100%-2rem))] -translate-x-1/2 flex-wrap items-center justify-end gap-3 rounded-lg border border-border bg-rail px-4 py-3 shadow-glow animate-in slide-in-from-bottom-4">
+            <p className="min-w-32 flex-1 text-sm">Alterações não salvas</p>
             <Button variant="ghost" size="sm" onClick={() => setDraft(me)}>
               Redefinir
             </Button>
@@ -614,12 +614,12 @@ function NavItem({
   danger?: boolean;
 }) {
   return (
-    <button
+    <Button variant="ghost"
       onClick={onClick}
-      className={`w-full rounded px-2.5 py-2 text-left text-sm transition ${active ? "bg-accent font-medium text-foreground" : danger ? "text-dnd hover:bg-accent/60" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+      className={`h-auto w-full justify-start rounded px-2.5 py-2 text-left text-sm transition ${active ? "bg-accent font-medium text-foreground" : danger ? "text-dnd hover:bg-accent/60" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 

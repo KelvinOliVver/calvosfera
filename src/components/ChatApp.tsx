@@ -16,7 +16,15 @@ import {
   Pencil,
   Send,
   ShieldCheck,
+  Search,
+  Smile,
+  ChevronDown,
+  Settings2,
+  LoaderCircle,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
@@ -32,6 +40,7 @@ import {
   nameOf,
   type Profile,
 } from "./ProfileDialogs";
+import communityBanner from "@/assets/bg.jpg";
 import { MessageText } from "./MessageText";
 
 type Channel = { id: string; name: string; kind: string; position: number };
@@ -66,6 +75,9 @@ export function ChatApp({ userId }: { userId: string }) {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const [online, setOnline] = useState<string[]>([]);
   const [viewing, setViewing] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
@@ -396,12 +408,12 @@ export function ChatApp({ userId }: { userId: string }) {
           <p className="mt-2 text-sm text-muted-foreground">
             {status.reason || "O admin removeu seu acesso à Calvosfera."}
           </p>
-          <button
+          <Button variant="ghost"
             onClick={() => supabase.auth.signOut()}
             className="mt-6 text-sm text-primary hover:underline"
           >
             Sair
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -412,24 +424,24 @@ export function ChatApp({ userId }: { userId: string }) {
       {/* Channels */}
       {navOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-scrim backdrop-blur-sm md:hidden"
           onClick={() => setNavOpen(false)}
         />
       )}
-      <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-3 bg-[#0b0710] py-3 md:flex">
+      <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-3 bg-rail py-3 md:flex">
         <div
           title="Calvosfera"
           aria-current="page"
-          className="relative flex h-12 w-12 items-center justify-center rounded-[18px] bg-sakura text-lg font-bold text-white shadow-lg shadow-primary/20"
+          className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground"
         >
-          <span className="absolute -left-[13px] h-8 rounded-r-full bg-white" />C
+          <span className="absolute -left-[13px] h-8 rounded-r-full bg-foreground" />C
         </div>
       </aside>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-black/25 bg-[#171020]/95 shadow-2xl shadow-black/30 backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-panel shadow-2xl shadow-glow backdrop-blur-2xl transition-transform md:static md:w-[250px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex h-[58px] items-center gap-3 border-b border-black/20 px-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sakura text-lg font-bold text-white shadow-md shadow-primary/30">
+        <div className="flex h-[58px] items-center gap-3 border-b border-border px-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-extrabold text-primary-foreground">
             C
           </span>
           <span className="min-w-0 flex-1 text-left">
@@ -438,13 +450,17 @@ export function ChatApp({ userId }: { userId: string }) {
               Comunidade · {online.length} online
             </span>
           </span>
-          <button
-            className="rounded p-1 text-muted-foreground hover:bg-white/[0.08] md:hidden"
+          <Button variant="ghost"
+            className="rounded p-1 text-muted-foreground hover:bg-accent md:hidden"
             onClick={() => setNavOpen(false)}
             aria-label="Fechar menu"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
+        </div>
+        <div className="relative h-28 shrink-0 overflow-hidden border-b border-border">
+          <img src={communityBanner} alt="Paisagem anime da Calvosfera" className="h-full w-full object-cover" />
+          <span className="absolute bottom-3 left-3 rounded bg-rail/90 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-foreground">Calvosfera · Anime & amigos</span>
         </div>
         <nav className="flex-1 space-y-6 overflow-y-auto px-2.5 py-5">
           <ChannelGroup
@@ -466,7 +482,7 @@ export function ChatApp({ userId }: { userId: string }) {
                   }}
                   onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
                 >
-                  <Hash className="h-[18px] w-[18px]" /> {c.name}
+                  <Hash className="h-[18px] w-[18px]" /> <span className="truncate">{c.name}</span>
                 </ChannelBtn>
               ))}
           </ChannelGroup>
@@ -486,10 +502,10 @@ export function ChatApp({ userId }: { userId: string }) {
                     onClick={() => voice.join(c.id)}
                     onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
                   >
-                    <Volume2 className="h-4 w-4" /> {c.name}
+                    <Volume2 className="h-4 w-4" /> <span className="truncate">{c.name}</span>
                   </ChannelBtn>
                   {c.id === voice.channelId && (
-                    <div className="ml-7 mt-1 space-y-1 border-l border-white/10 pl-2">
+                    <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
                       {[userId, ...voice.peers].map((id) => (
                         <div
                           key={id}
@@ -528,10 +544,10 @@ export function ChatApp({ userId }: { userId: string }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2 border-t border-white/[0.06] bg-[#191321]/90 px-2.5 py-2">
-          <button
+        <div className="flex items-center gap-2 border-t border-border bg-rail px-2.5 py-2">
+          <Button variant="ghost"
             onClick={() => me && setViewing(me)}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-white/[0.05]"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition hover:bg-accent"
           >
             <Avatar p={me} size={32} status={me?.status ?? "online"} />
             <span className="min-w-0">
@@ -540,9 +556,9 @@ export function ChatApp({ userId }: { userId: string }) {
                 {status?.isAdmin ? "Administrador" : "Online"}
               </span>
             </span>
-          </button>
+          </Button>
           <IconBtn onClick={() => setEditing(true)} label="Editar perfil">
-            <Pencil className="h-4 w-4" />
+            <Settings2 className="h-4 w-4" />
           </IconBtn>
           <IconBtn onClick={() => supabase.auth.signOut()} label="Sair">
             <LogOut className="h-4 w-4" />
@@ -551,23 +567,24 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-gradient-to-br from-[#100a18] via-[#0c0912] to-[#120a1b]">
-        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#110c19]/90 px-4 shadow-sm shadow-black/20 backdrop-blur-xl">
-          <button
-            className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground md:hidden"
+      <main className="flex min-w-0 flex-1 flex-col bg-background">
+        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-border bg-background px-4 shadow-sm shadow-glow backdrop-blur-xl">
+          <Button variant="ghost"
+            className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
             onClick={() => setNavOpen(true)}
             aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />
-          </button>
+          </Button>
           <Hash className="h-5 w-5 shrink-0 text-muted-foreground" />
           <div className="min-w-0">
             <span className="block truncate text-sm font-bold">{activeCh?.name ?? "Canais"}</span>
-            <span className="hidden text-[11px] text-muted-foreground sm:block">
-              Converse e compartilhe com a comunidade
-            </span>
+
           </div>
-          <div className="ml-auto hidden items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs text-muted-foreground lg:flex">
+          <IconBtn onClick={() => setSearchOpen((value) => !value)} label="Buscar mensagens">
+            <Search className="h-4 w-4" />
+          </IconBtn>
+          <div className="ml-auto hidden items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground lg:flex">
             <Users className="h-3.5 w-3.5 text-online" />
             <span>{online.length} online</span>
           </div>
@@ -580,25 +597,34 @@ export function ChatApp({ userId }: { userId: string }) {
               <ShieldCheck className="h-3 w-3" /> Admin
             </span>
           )}
-          <button
+          <Button variant="ghost"
             onClick={() => setMobileMembersOpen((open) => !open)}
             aria-label={mobileMembersOpen ? "Fechar lista de membros" : "Abrir lista de membros"}
             aria-expanded={mobileMembersOpen}
-            className="ml-auto rounded-md p-2 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground lg:hidden"
+            className="ml-auto rounded-md p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground lg:hidden"
           >
             <Users className="h-4 w-4" />
-          </button>
+          </Button>
         </header>
-        <div className="flex-1 overflow-y-auto px-2 py-4 sm:px-4">
+        {searchOpen && (
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Input aria-label="Buscar nas mensagens carregadas" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nas últimas 100 mensagens" className="h-9 bg-panel" autoFocus />
+            <IconBtn onClick={() => { setSearch(""); setSearchOpen(false); }} label="Fechar busca"><X className="h-4 w-4" /></IconBtn>
+          </div>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:px-4">
           {loadingMsgs && (
-            <p className="px-4 text-sm text-muted-foreground">Carregando mensagens…</p>
+            <div role="status" aria-label="Carregando mensagens" className="space-y-6 px-3 py-6">
+              {[1, 2, 3].map((i) => <div key={i} className="flex gap-3 animate-pulse"><div className="h-10 w-10 shrink-0 rounded-full bg-muted" /><div className="flex-1 space-y-3"><div className="h-3 w-28 rounded bg-muted" /><div className="h-3 w-3/4 rounded bg-muted" /><div className="h-3 w-1/2 rounded bg-muted" /></div></div>)}
+            </div>
           )}
           {!loadingMsgs && messages.length === 0 && (
-            <div className="mx-2 mt-8 max-w-xl border-t border-white/[0.08] pt-6 sm:mx-4">
+            <div className="mx-2 mt-8 max-w-xl pt-6 sm:mx-4">
               <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-3xl text-primary ring-1 ring-primary/20">
                 <Hash className="h-7 w-7" />
               </div>
-              <p className="font-sans text-3xl font-extrabold tracking-tight">
+              <p className="break-words font-sans text-2xl font-extrabold leading-tight sm:text-3xl">
                 Boas-vindas a #{activeCh?.name}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -606,7 +632,9 @@ export function ChatApp({ userId }: { userId: string }) {
               </p>
             </div>
           )}
+          {!loadingMsgs && search.trim() && !messages.some((m) => `${m.content} ${nameOf(profiles[m.user_id])} ${m.attachment_name ?? ""}`.toLowerCase().includes(search.toLowerCase())) && <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma mensagem encontrada.</p>}
           {messages.map((m, i) => {
+            if (search.trim() && !`${m.content} ${nameOf(profiles[m.user_id])} ${m.attachment_name ?? ""}`.toLowerCase().includes(search.toLowerCase())) return null;
             const p = profiles[m.user_id];
             const previous = messages[i - 1];
             const messageDate = new Date(m.created_at);
@@ -622,7 +650,7 @@ export function ChatApp({ userId }: { userId: string }) {
               <Fragment key={m.id}>
                 {showDate && (
                   <div className="my-5 flex items-center gap-3 px-2 text-[11px] font-semibold text-muted-foreground/80">
-                    <span className="h-px flex-1 bg-white/[0.08]" />
+                    <span className="h-px flex-1 bg-border" />
                     <span>
                       {messageDate.toLocaleDateString("pt-BR", {
                         day: "numeric",
@@ -630,31 +658,31 @@ export function ChatApp({ userId }: { userId: string }) {
                         year: "numeric",
                       })}
                     </span>
-                    <span className="h-px flex-1 bg-white/[0.08]" />
+                    <span className="h-px flex-1 bg-border" />
                   </div>
                 )}
                 <div
-                  className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-white/[0.04] sm:px-3 ${grouped ? "" : "mt-3"}`}
+                  className={`group flex gap-3 rounded-md px-2 py-1 hover:bg-muted/40 sm:px-3 ${grouped ? "" : "mt-3"}`}
                 >
                   <div className="w-10 shrink-0">
                     {!grouped && (
-                      <button
+                      <Button variant="ghost"
                         onClick={() => p && setViewing(p)}
                         aria-label={`Ver perfil de ${nameOf(p)}`}
                       >
                         <Avatar p={p} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
                     {!grouped && (
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <button
+                        <Button variant="ghost"
                           onClick={() => p && setViewing(p)}
                           className="font-semibold text-foreground hover:underline"
                         >
                           {nameOf(p)}
-                        </button>
+                        </Button>
                         {p?.display_name?.trim() && (
                           <span className="hidden text-xs text-muted-foreground sm:inline">
                             @{p.username}
@@ -672,12 +700,12 @@ export function ChatApp({ userId }: { userId: string }) {
                       <img
                         src={m.content}
                         alt=""
-                        className="mt-1 max-h-72 max-w-full rounded-lg border border-white/[0.08]"
+                        className="mt-1 max-h-72 max-w-full rounded-lg border border-border"
                         loading="lazy"
                       />
                     ) : (
                       m.content && (
-                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[1.45rem] text-[#e4dfea]">
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all">
                           <MessageText
                             text={m.content}
                             byName={profilesByUsername}
@@ -689,13 +717,13 @@ export function ChatApp({ userId }: { userId: string }) {
                     {m.attachment_url && <Attachment m={m} />}
                   </div>
                   {(m.user_id === userId || status?.isAdmin) && (
-                    <button
+                    <Button variant="ghost"
                       onClick={() => supabase.from("messages").delete().eq("id", m.id)}
-                      className="rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
+                      className="h-8 w-8 shrink-0 self-start p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
                       aria-label="Apagar mensagem"
                     >
-                      apagar
-                    </button>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </Fragment>
@@ -711,14 +739,14 @@ export function ChatApp({ userId }: { userId: string }) {
               <span className="text-xs text-muted-foreground">
                 {(pendingFile.size / 1024 / 1024).toFixed(1)} MB
               </span>
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => setPendingFile(null)}
                 className="ml-auto rounded p-1 hover:bg-accent"
                 aria-label="Remover arquivo"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           )}
           {mutedUntil ? (
@@ -727,15 +755,15 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-[#16101f] px-3 py-2.5 shadow-lg shadow-black/20 transition focus-within:border-primary/50 focus-within:bg-[#1b1326]">
-              <button
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 shadow-lg shadow-glow transition focus-within:border-primary/50 focus-within:bg-card">
+              <Button variant="ghost"
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 className="rounded p-1 text-muted-foreground transition hover:text-foreground"
                 aria-label="Anexar arquivo"
               >
                 <Paperclip className="h-5 w-5" />
-              </button>
+              </Button>
               <input
                 ref={fileRef}
                 type="file"
@@ -747,7 +775,11 @@ export function ChatApp({ userId }: { userId: string }) {
                   e.target.value = "";
                 }}
               />
-              <input
+              <textarea
+                ref={composerRef}
+                rows={1}
+                aria-label="Mensagem"
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onPaste={(e) => {
@@ -759,21 +791,25 @@ export function ChatApp({ userId }: { userId: string }) {
                     ? `Conversar em #${activeCh?.name ?? ""} — /ajuda para comandos`
                     : `Conversar em #${activeCh?.name ?? ""}`
                 }
-                className="flex-1 bg-transparent py-1 outline-none placeholder:text-muted-foreground"
+                className="min-w-0 flex-1 resize-none bg-transparent py-1 text-sm leading-6 outline-none placeholder:text-muted-foreground"
                 maxLength={2000}
               />
-              <button
+              <Popover>
+                <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Escolher emoji" title="Escolher emoji" className="shrink-0 text-muted-foreground"><Smile className="h-5 w-5" /></Button></PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3"><div className="grid grid-cols-6 gap-1">{["😀", "😂", "🥹", "😍", "😎", "😭", "❤️", "🔥", "✨", "🎉", "👍", "💀", "🌸", "🎮", "🍜", "👀", "🤝", "💚"].map((emoji) => <Button key={emoji} variant="ghost" size="icon" aria-label={`Inserir ${emoji}`} className="text-xl" onClick={() => { setText((value) => (value + emoji).slice(0, 2000)); composerRef.current?.focus(); }}>{emoji}</Button>)}</div></PopoverContent>
+              </Popover>
+              <Button variant="ghost"
                 type="submit"
-                disabled={sending || (!text.trim() && !pendingFile)}
-                className="rounded p-1 text-primary transition disabled:text-muted-foreground"
+                disabled={sending || !active || (!text.trim() && !pendingFile)}
+                className="h-9 w-9 shrink-0 p-1 text-primary transition disabled:text-muted-foreground"
                 aria-label="Enviar"
               >
                 {sending ? (
-                  <span className="text-xs">Enviando…</span>
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
                 ) : (
                   <Send className="h-5 w-5" />
                 )}
-              </button>
+              </Button>
             </div>
           )}
         </form>
@@ -782,22 +818,22 @@ export function ChatApp({ userId }: { userId: string }) {
       {/* Members */}
       {mobileMembersOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-scrim backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMembersOpen(false)}
         />
       )}
       <aside
-        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-2xl" : "hidden"} w-72 shrink-0 overflow-y-auto border-l border-white/[0.06] bg-[#171020]/95 px-2.5 py-5 backdrop-blur-xl lg:static lg:block lg:w-[240px] lg:shadow-none`}
+        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-2xl" : "hidden"} w-72 shrink-0 overflow-y-auto border-l border-border bg-panel px-2.5 py-5 backdrop-blur-xl lg:static lg:block lg:w-[240px] lg:shadow-none`}
       >
         <div className="mb-4 flex items-center justify-between px-2 lg:hidden">
           <span className="text-sm font-bold">Membros</span>
-          <button
+          <Button variant="ghost"
             onClick={() => setMobileMembersOpen(false)}
-            className="rounded p-1 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
             aria-label="Fechar lista de membros"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <MemberGroup
           title={`Online — ${onlineMembers.length}`}
@@ -822,16 +858,17 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       <ViewProfile
+        status={viewing && online.includes(viewing.id) ? (viewing.status ?? "online") : "invisible"}
         p={viewing}
         onClose={() => setViewing(null)}
         actions={
           status?.isAdmin && viewing && viewing.id !== userId ? (
-            <button
+            <Button variant="ghost"
               onClick={() => toggleBan(viewing)}
               className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm text-destructive transition hover:bg-destructive hover:text-destructive-foreground"
             >
               {bannedIds.includes(viewing.id) ? "Desbanir" : "Banir"}
-            </button>
+            </Button>
           ) : undefined
         }
       />
@@ -849,7 +886,8 @@ export function ChatApp({ userId }: { userId: string }) {
 }
 
 function Attachment({ m }: { m: Message }) {
-  const url = m.attachment_url!;
+  const url = m.attachment_url;
+  if (!url) return null;
   const type = m.attachment_type ?? "";
   if (type.startsWith("image/"))
     return (
@@ -899,18 +937,16 @@ function ChannelGroup({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between px-2">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </p>
+        <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"><ChevronDown className="h-3 w-3" />{title}</p>
         {onAdd && (
-          <button
+          <Button variant="ghost"
             onClick={onAdd}
-            className="rounded p-0.5 text-muted-foreground transition hover:bg-white/[0.08] hover:text-foreground"
+            className="rounded p-0.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
             aria-label={`Criar ${title}`}
             title="Criar"
           >
             <Plus className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
       <div className="space-y-0.5">{children}</div>
@@ -931,22 +967,22 @@ function ChannelBtn({
 }) {
   return (
     <div
-      className={`group/ch flex min-h-9 items-center rounded-md transition ${active ? "bg-primary/20 text-white shadow-sm shadow-black/10" : "text-[#c0b9cc] hover:bg-white/[0.06] hover:text-white"}`}
+      className={`group/ch flex min-h-9 items-center rounded-md transition ${active ? "bg-accent text-foreground shadow-sm shadow-glow" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
     >
-      <button
+      <Button variant="ghost"
         onClick={onClick}
-        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-[13px] font-medium"
+        className="h-auto min-h-9 min-w-0 flex-1 justify-start gap-2 overflow-hidden px-2 py-1.5 text-left text-sm font-medium [&>span]:truncate"
       >
         {children}
-      </button>
+      </Button>
       {onDelete && (
-        <button
+        <Button variant="ghost"
           onClick={onDelete}
           className="mr-1 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover/ch:opacity-100 focus:opacity-100"
           aria-label="Apagar canal"
         >
           <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -974,22 +1010,22 @@ function MemberGroup({
         {members.map((p) => {
           const isOnline = online.includes(p.id);
           return (
-            <button
+            <Button variant="ghost"
               key={p.id}
               onClick={() => onSelect(p)}
-              className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left transition hover:bg-white/[0.06] ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
+              className={`flex h-auto min-h-11 w-full justify-start gap-3 rounded-md px-2 py-1.5 text-left transition hover:bg-accent ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
             >
               <Avatar
                 p={p}
                 size={32}
                 status={isOnline ? (p.status ?? "online") : "invisible"}
-                ring="border-[#1c1528]"
+                ring="border-panel"
               />
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{nameOf(p)}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{nameOf(p)}</span>{p.custom_status && <span className="block truncate text-[11px] font-normal text-muted-foreground">{p.custom_status}</span>}</span>
               {bannedIds.includes(p.id) && (
                 <span className="text-[9px] font-bold uppercase text-destructive">Banido</span>
               )}
-            </button>
+            </Button>
           );
         })}
         {members.length === 0 && (
@@ -1010,13 +1046,13 @@ function IconBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button variant="ghost"
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="rounded-md p-1.5 hover:bg-accent"
+      size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
     >
       {children}
-    </button>
+    </Button>
   );
 }
