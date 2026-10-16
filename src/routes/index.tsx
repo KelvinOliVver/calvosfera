@@ -20,7 +20,20 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { user, loading } = useAuth();
   if (loading) {
-    return <div className="flex h-screen items-center justify-center text-sakura font-display text-2xl">Carregando...</div>;
+    return (
+      <div className="app-loading flex min-h-dvh items-center justify-center px-6 text-center">
+        <div className="flex flex-col items-center">
+          <span className="auth-brand-mark flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-extrabold text-white">
+            C
+          </span>
+          <p className="mt-5 font-display text-xl font-bold tracking-tight">Calvosfera</p>
+          <p className="mt-1 text-sm text-muted-foreground">Preparando seu espaço...</p>
+          <span className="loading-track mt-6 h-1 w-28 overflow-hidden rounded-full" aria-hidden="true">
+            <span className="loading-progress block h-full w-1/2 rounded-full bg-primary" />
+          </span>
+        </div>
+      </div>
+    );
   }
   return user ? <ChatApp userId={user.id} /> : <AuthScreen />;
 }

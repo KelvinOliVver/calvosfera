@@ -79,6 +79,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
+  const [channelSearch, setChannelSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [online, setOnline] = useState<string[]>([]);
@@ -462,6 +463,12 @@ export function ChatApp({ userId }: { userId: string }) {
         .includes(query),
     );
   }, [messages, profiles, search]);
+  const visibleChannels = useMemo(() => {
+    const query = channelSearch.trim().toLocaleLowerCase("pt-BR");
+    return query
+      ? channels.filter((channel) => channel.name.toLocaleLowerCase("pt-BR").includes(query))
+      : channels;
+  }, [channels, channelSearch]);
 
   if (status?.banned) {
     return (
@@ -492,20 +499,20 @@ export function ChatApp({ userId }: { userId: string }) {
           onClick={() => setNavOpen(false)}
         />
       )}
-      <aside className="hidden w-[64px] shrink-0 flex-col items-center gap-3 border-r border-border bg-rail py-3 md:flex">
+      <aside className="server-rail hidden w-[64px] shrink-0 flex-col items-center gap-3 border-r border-border py-3 md:flex">
         <div
           title="Calvosfera"
           aria-current="page"
-          className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-primary-foreground transition hover:rounded-xl"
+          className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-primary-foreground shadow-lg shadow-primary/20 transition hover:rounded-xl"
         >
           <span className="absolute -left-[13px] h-8 rounded-r-full bg-foreground" />C
         </div>
       </aside>
       <aside
-        className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform md:static md:w-[228px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex h-[58px] items-center gap-3 border-b border-border px-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
+        <div className="flex h-[68px] items-center gap-3 border-b border-border px-4">
+          <span className="auth-brand-mark flex h-9 w-9 items-center justify-center rounded-xl text-lg font-extrabold text-primary-foreground">
             C
           </span>
           <span className="min-w-0 flex-1 text-left">
@@ -523,25 +530,35 @@ export function ChatApp({ userId }: { userId: string }) {
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-          <span className="h-2 w-2 rounded-full bg-online" />
-          <span className="text-xs text-muted-foreground">
-            {online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}
-          </span>
+        <div className="channel-search-wrap px-3 pb-3 pt-4">
+          <label className="channel-search flex h-9 items-center gap-2 rounded-lg px-2.5">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Input
+              aria-label="Buscar canais"
+              value={channelSearch}
+              onChange={(event) => setChannelSearch(event.target.value)}
+              placeholder="Buscar canal"
+              className="h-full border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
+            />
+          </label>
+          <div className="mt-3 flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
+            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-online/50" /><span className="relative inline-flex h-2 w-2 rounded-full bg-online" /></span>
+            <span>{online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}</span>
+          </div>
         </div>
         <nav
           aria-label="Canais da Calvosfera"
-          className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
+          className="channel-navigation flex-1 space-y-5 overflow-y-auto px-2.5 py-2"
         >
           <ChannelGroup
             title="Canais de texto"
             onAdd={status?.isAdmin ? () => createChannel("text") : undefined}
           >
-            {channels.filter((c) => c.kind === "text").length === 0 && (
-              <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum canal ainda</p>
+            {visibleChannels.filter((c) => c.kind === "text").length === 0 && (
+              <p className="px-2 py-1 text-xs text-muted-foreground">{channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}</p>
             )}
             {channels
-              .filter((c) => c.kind === "text")
+              .filter((c) => c.kind === "text" && visibleChannels.includes(c))
               .map((c) => (
                 <ChannelBtn
                   key={c.id}
@@ -560,11 +577,11 @@ export function ChatApp({ userId }: { userId: string }) {
             title="Canais de voz"
             onAdd={status?.isAdmin ? () => createChannel("voice") : undefined}
           >
-            {channels.filter((c) => c.kind === "voice").length === 0 && (
-              <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum canal ainda</p>
+            {visibleChannels.filter((c) => c.kind === "voice").length === 0 && (
+              <p className="px-2 py-1 text-xs text-muted-foreground">{channelSearch ? "Nenhum canal encontrado" : "Nenhum canal ainda"}</p>
             )}
             {channels
-              .filter((c) => c.kind === "voice")
+              .filter((c) => c.kind === "voice" && visibleChannels.includes(c))
               .map((c) => (
                 <div key={c.id}>
                   <ChannelBtn
@@ -614,7 +631,7 @@ export function ChatApp({ userId }: { userId: string }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2 border-t border-border bg-rail px-2.5 py-2.5">
+        <div className="current-user flex items-center gap-2 border-t border-border px-2.5 py-3">
           <Button
             variant="ghost"
             onClick={() => me && setViewing(me)}
@@ -638,8 +655,8 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-transparent">
-        <header className="chat-topbar z-10 flex h-[64px] shrink-0 items-center gap-3 border-b border-border px-3 sm:px-5">
+      <main className="conversation-panel flex min-w-0 flex-1 flex-col bg-transparent">
+        <header className="chat-topbar z-10 flex h-[68px] shrink-0 items-center gap-3 border-b border-border px-3 sm:px-5">
           <Button
             variant="ghost"
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
@@ -722,7 +739,7 @@ export function ChatApp({ userId }: { userId: string }) {
             </IconBtn>
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:px-5 xl:px-8">
+        <div className="message-stream min-h-0 flex-1 overflow-y-auto px-2 py-5 sm:px-5 xl:px-8">
           {loadingMsgs && (
             <div role="status" aria-label="Carregando mensagens" className="space-y-6 px-3 py-6">
               {[1, 2, 3].map((i) => (
@@ -761,6 +778,7 @@ export function ChatApp({ userId }: { userId: string }) {
           )}
           {visibleMessages.map((m, i) => {
             const p = profiles[m.user_id];
+            const isMine = m.user_id === userId;
             const previous = visibleMessages[i - 1];
             const messageDate = new Date(m.created_at);
             const previousDate = previous ? new Date(previous.created_at) : null;
@@ -787,9 +805,9 @@ export function ChatApp({ userId }: { userId: string }) {
                   </div>
                 )}
                 <div
-                  className={`group mx-auto flex w-full max-w-[1100px] gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent/45 sm:px-3 ${grouped ? "" : "mt-3"}`}
+                  className={`message-row group mx-auto flex w-full max-w-[920px] gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/45 sm:px-3 ${isMine ? "justify-end" : ""} ${grouped ? "" : "mt-3"}`}
                 >
-                  <div className="w-9 shrink-0">
+                  <div className={`w-9 shrink-0 ${isMine ? "order-2" : ""}`}>
                     {!grouped && (
                       <Button
                         variant="ghost"
@@ -801,9 +819,9 @@ export function ChatApp({ userId }: { userId: string }) {
                       </Button>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className={`min-w-0 ${isMine ? "order-1 max-w-[82%] text-right" : "flex-1"}`}>
                     {!grouped && (
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${isMine ? "justify-end" : ""}`}>
                         <Button
                           variant="ghost"
                           onClick={() => p && setViewing(p)}
@@ -833,7 +851,7 @@ export function ChatApp({ userId }: { userId: string }) {
                       />
                     ) : (
                       m.content && (
-                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all">
+                        <p className={`whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all ${isMine ? "message-own-bubble text-white" : ""}`}>
                           <MessageText
                             text={m.content}
                             byName={profilesByUsername}
@@ -862,7 +880,7 @@ export function ChatApp({ userId }: { userId: string }) {
         </div>
         <form
           onSubmit={send}
-          className="mx-auto w-full max-w-[1100px] shrink-0 px-3 pb-4 sm:px-5 xl:px-8"
+          className="message-compose mx-auto w-full max-w-[920px] shrink-0 px-3 pb-5 pt-2 sm:px-5 xl:px-8"
         >
           {pendingFile && (
             <div className="mb-2 flex items-center gap-2 rounded-md bg-card px-3 py-2 text-sm">
@@ -1010,9 +1028,9 @@ export function ChatApp({ userId }: { userId: string }) {
         />
       )}
       <aside
-        className={`${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-xl" : "hidden"} ${membersCollapsed ? "lg:hidden" : "lg:static lg:block lg:shadow-none"} w-72 shrink-0 overflow-y-auto border-l border-border bg-panel px-3 py-4 lg:w-[240px]`}
+        className={`members-sidebar ${mobileMembersOpen ? "fixed inset-y-0 right-0 z-40 shadow-xl" : "hidden"} ${membersCollapsed ? "lg:hidden" : "lg:static lg:block lg:shadow-none"} w-72 shrink-0 overflow-y-auto border-l border-border px-3 py-4 lg:w-[224px]`}
       >
-        <div className="mb-4 flex h-9 items-center justify-between px-2">
+        <div className="members-heading mb-4 flex h-9 items-center justify-between rounded-lg px-2">
           <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Membros · {onlineMembers.length + offlineMembers.length}
           </span>
@@ -1209,7 +1227,7 @@ function MemberGroup({
       <h2 className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
-      <div className="space-y-0.5">
+      <div className="member-list space-y-0.5">
         {members.map((p) => {
           const isOnline = online.includes(p.id);
           return (
@@ -1217,7 +1235,7 @@ function MemberGroup({
               variant="ghost"
               key={p.id}
               onClick={() => onSelect(p)}
-              className={`flex h-auto min-h-11 w-full justify-start gap-3 rounded-md px-2 py-1.5 text-left transition hover:bg-accent ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
+              className={`member-row flex h-auto min-h-11 w-full justify-start gap-3 rounded-lg px-2 py-1.5 text-left transition hover:bg-accent ${isOnline ? "" : "opacity-55 hover:opacity-100"}`}
             >
               <Avatar
                 p={p}

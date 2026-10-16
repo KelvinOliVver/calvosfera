@@ -240,7 +240,7 @@ export function ProfileCard({
 }) {
   const extras = profileExtras(p.profile_extras);
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-border bg-popover shadow-2xl shadow-glow">
+    <div className="profile-card w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-glow">
       <div className="relative overflow-hidden">
         <div className="h-[118px] w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
