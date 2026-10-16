@@ -30,6 +30,8 @@ import {
   Vote,
   MessageSquareText,
   SlidersHorizontal,
+  Bell,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,6 +151,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const banFn = useServerFn(banUser);
   const unbanFn = useServerFn(unbanUser);
   const communityTools = useCommunityTools(userId);
+  const unreadTotal = Object.values(unread).reduce((sum, count) => sum + count, 0);
 
   useEffect(() => {
     try {
@@ -995,18 +998,60 @@ export function ChatApp({ userId }: { userId: string }) {
             <IconBtn onClick={() => setSocialOpen(true)} label="Amigos e mensagens privadas">
               <Users className="h-4 w-4" />
             </IconBtn>
-            <IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade">
-              <Vote className="h-4 w-4" />
-            </IconBtn>
-            <IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas">
-              <Bookmark className="h-4 w-4" />
-            </IconBtn>
-            <IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências">
-              <Palette className="h-4 w-4" />
-            </IconBtn>
-            <IconBtn onClick={() => setMessageSearchOpen(true)} label="Busca avançada de mensagens">
-              <SlidersHorizontal className="h-4 w-4" />
-            </IconBtn>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={unreadTotal ? `Atividade, ${unreadTotal} mensagens não lidas` : "Atividade"}
+                  title="Atividade"
+                  className="relative h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
+                >
+                  <Bell className="h-4 w-4" />
+                  {unreadTotal > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">{unreadTotal > 99 ? "99+" : unreadTotal}</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[min(22rem,calc(100vw-1rem))] p-0">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold">Atividade</p>
+                    <p className="text-xs text-muted-foreground">Mensagens novas por canal</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={unreadTotal === 0}
+                    onClick={() => {
+                      setUnread({});
+                      try { window.localStorage.setItem(`calvosfera:unread:${userId}`, "{}"); } catch { /* Keep the in-memory state. */ }
+                    }}
+                    className="h-8 gap-1.5 px-2 text-xs"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" /> Limpar
+                  </Button>
+                </div>
+                <div className="max-h-72 overflow-y-auto p-2">
+                  {channels.filter((channel) => (unread[channel.id] ?? 0) > 0).length === 0 ? (
+                    <p className="px-3 py-8 text-center text-sm text-muted-foreground">Tudo em dia. Nenhuma mensagem nova.</p>
+                  ) : channels.filter((channel) => (unread[channel.id] ?? 0) > 0).map((channel) => (
+                    <Button
+                      key={channel.id}
+                      variant="ghost"
+                      onClick={() => navigateToChannel(channel.id)}
+                      className="h-auto w-full justify-start gap-3 px-3 py-2 text-left"
+                    >
+                      <Hash className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-sm">{channel.name}</span>
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">{unread[channel.id]}</span>
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade"><Vote className="h-4 w-4" /></IconBtn></span>
+            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas"><Bookmark className="h-4 w-4" /></IconBtn></span>
+            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências"><Palette className="h-4 w-4" /></IconBtn></span>
+            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setMessageSearchOpen(true)} label="Busca avançada de mensagens"><SlidersHorizontal className="h-4 w-4" /></IconBtn></span>
           </div>
           <IconBtn onClick={() => setSearchOpen((value) => !value)} label="Buscar mensagens">
             <Search className="h-4 w-4" />
@@ -1591,6 +1636,15 @@ export function ChatApp({ userId }: { userId: string }) {
               }}
             >
               <Search /> Buscar mensagens <CommandShortcut>Canal atual</CommandShortcut>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCommunityOpen(true); setCommandOpen(false); }}>
+              <Vote /> Central da comunidade
+            </CommandItem>
+            <CommandItem onSelect={() => { setSavedMessagesOpen(true); setCommandOpen(false); }}>
+              <Bookmark /> Mensagens salvas
+            </CommandItem>
+            <CommandItem onSelect={() => { setMessageSearchOpen(true); setCommandOpen(false); }}>
+              <SlidersHorizontal /> Busca avançada de mensagens
             </CommandItem>
             <CommandItem
               onSelect={() => {
