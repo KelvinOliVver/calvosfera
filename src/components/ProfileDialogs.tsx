@@ -288,8 +288,12 @@ export function ProfileCard({
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-1 opacity-90"
-          style={{ background: "linear-gradient(90deg, var(--profile-accent), transparent 78%)" }}
+          className="absolute inset-x-0 bottom-0 h-1.5"
+          style={{
+            background:
+              "linear-gradient(90deg, var(--profile-accent), var(--profile-secondary) 52%, transparent 100%)",
+            boxShadow: "0 0 18px color-mix(in srgb, var(--profile-accent) 58%, transparent)",
+          }}
         />
         <div className="absolute bottom-3 left-4 flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-sm">
           <Sparkles className="h-3 w-3" /> PERFIL DA CALVOSFERA
@@ -298,7 +302,7 @@ export function ProfileCard({
       <div
         className="profile-card-content px-4 pb-4"
         style={{
-          background: `linear-gradient(180deg, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 22%, var(--popover)) 0%, color-mix(in srgb, ${p.theme_accent || p.theme_primary || "var(--secondary)"} 10%, var(--popover)) 34%, var(--popover) 72%)`,
+          background: `radial-gradient(ellipse at 8% 0%, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 28%, transparent), transparent 52%), linear-gradient(155deg, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 32%, var(--popover)) 0%, color-mix(in srgb, ${p.theme_accent || p.theme_primary || "var(--secondary)"} 20%, var(--popover)) 38%, var(--popover) 82%)`,
         }}
       >
         <div className="relative -mt-11 mb-3 flex items-end justify-between">
@@ -1203,7 +1207,12 @@ export function EditProfile({
                 }}
               />
             </div>
-            <div className="relative px-6 pb-8">
+            <div
+              className="relative px-6 pb-8"
+              style={{
+                background: `radial-gradient(ellipse at 8% 0%, color-mix(in srgb, ${draft.theme_primary || "var(--primary)"} 28%, transparent), transparent 52%), linear-gradient(155deg, color-mix(in srgb, ${draft.theme_primary || "var(--primary)"} 32%, var(--popover)) 0%, color-mix(in srgb, ${draft.theme_accent || draft.theme_primary || "var(--secondary)"} 20%, var(--popover)) 38%, var(--popover) 82%)`,
+              }}
+            >
               <div className="-mt-12 mb-3 flex items-end justify-between">
                 <div className="rounded-full bg-popover p-1.5">
                   <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
