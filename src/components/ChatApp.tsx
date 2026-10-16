@@ -26,6 +26,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandShortcut,
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +90,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [search, setSearch] = useState("");
   const [channelSearch, setChannelSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [online, setOnline] = useState<string[]>([]);
   const [viewing, setViewing] = useState<Profile | null>(null);
@@ -102,6 +112,8 @@ export function ChatApp({ userId }: { userId: string }) {
     reason: string | null;
   } | null>(null);
   const [bannedIds, setBannedIds] = useState<string[]>([]);
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const channelSearchRef = useRef<HTMLInputElement>(null);
   const checkInFn = useServerFn(checkIn);
   const banFn = useServerFn(banUser);
   const unbanFn = useServerFn(unbanUser);
@@ -119,6 +131,71 @@ export function ChatApp({ userId }: { userId: string }) {
       })
       .catch(() => setStatus({ isAdmin: false, banned: false, reason: null }));
   }, [userId, checkInFn]);
+
+  useEffect(() => {
+    const key = `calvosfera:unread:${userId}`;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(key) ?? "{}");
+      if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+        const counts = Object.fromEntries(
+          Object.entries(stored).filter((entry): entry is [string, number] =>
+            typeof entry[1] === "number" && entry[1] > 0,
+          ),
+        );
+        setUnread(counts);
+      }
+    } catch {
+      // Ignore corrupt or unavailable local storage.
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    setUnread((current) => {
+      if (!current[active]) return current;
+      const next = { ...current };
+      delete next[active];
+      try {
+        window.localStorage.setItem(`calvosfera:unread:${userId}`, JSON.stringify(next));
+      } catch {
+        // Unread counts still work for this session when storage is unavailable.
+      }
+      return next;
+    });
+  }, [active, userId]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`unread-${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const message = payload.new as Message;
+        if (!message.channel_id || message.channel_id === active || message.user_id === userId) return;
+        setUnread((current) => {
+          const next = { ...current, [message.channel_id]: (current[message.channel_id] ?? 0) + 1 };
+          try {
+            window.localStorage.setItem(`calvosfera:unread:${userId}`, JSON.stringify(next));
+          } catch {
+            // Unread counts still work for this session when storage is unavailable.
+          }
+          return next;
+        });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [active, userId]);
 
   async function toggleBan(p: Profile) {
     const isBanned = bannedIds.includes(p.id);
@@ -534,6 +611,7 @@ export function ChatApp({ userId }: { userId: string }) {
           <label className="channel-search flex h-9 items-center gap-2 rounded-lg px-2.5">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
+              ref={channelSearchRef}
               aria-label="Buscar canais"
               value={channelSearch}
               onChange={(event) => setChannelSearch(event.target.value)}
@@ -544,6 +622,9 @@ export function ChatApp({ userId }: { userId: string }) {
           <div className="mt-3 flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
             <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-online/50" /><span className="relative inline-flex h-2 w-2 rounded-full bg-online" /></span>
             <span>{online.length} {online.length === 1 ? "pessoa online" : "pessoas online"}</span>
+            <Button variant="ghost" onClick={() => setCommandOpen(true)} className="ml-auto h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground" aria-label="Abrir navegação rápida">
+              Ctrl K
+            </Button>
           </div>
         </div>
         <nav
@@ -563,13 +644,14 @@ export function ChatApp({ userId }: { userId: string }) {
                 <ChannelBtn
                   key={c.id}
                   active={c.id === active}
+                  unread={unread[c.id] ?? 0}
                   onClick={() => {
                     setActive(c.id);
                     setNavOpen(false);
                   }}
                   onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
                 >
-                  <Hash className="h-[18px] w-[18px]" /> <span className="truncate">{c.name}</span>
+                  <Hash className="h-[18px] w-[18px]" /> <span className="min-w-0 flex-1 truncate">{c.name}</span>
                 </ChannelBtn>
               ))}
           </ChannelGroup>
@@ -589,7 +671,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     onClick={() => voice.join(c.id)}
                     onDelete={status?.isAdmin ? () => deleteChannel(c) : undefined}
                   >
-                    <Volume2 className="h-4 w-4" /> <span className="truncate">{c.name}</span>
+                    <Volume2 className="h-4 w-4" /> <span className="min-w-0 flex-1 truncate">{c.name}</span>
                   </ChannelBtn>
                   {c.id === voice.channelId && (
                     <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
@@ -769,6 +851,23 @@ export function ChatApp({ userId }: { userId: string }) {
                   ? "Este é o começo do canal. Mande uma mensagem para iniciar a conversa."
                   : "Ainda não há canais para conversar. Tente novamente mais tarde."}
               </p>
+              {activeCh && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Button onClick={() => composerRef.current?.focus()} className="rounded-xl font-semibold shadow-lg shadow-primary/15">
+                    <Pencil className="mr-2 h-4 w-4" /> Começar uma conversa
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMembersCollapsed(false);
+                      setMobileMembersOpen(true);
+                    }}
+                    className="rounded-xl border-border bg-card/70"
+                  >
+                    <Users className="mr-2 h-4 w-4" /> Conhecer a comunidade
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           {!loadingMsgs && search.trim() && visibleMessages.length === 0 && (
@@ -1065,6 +1164,97 @@ export function ChatApp({ userId }: { userId: string }) {
         />
       </aside>
 
+      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+        <CommandInput placeholder="Buscar canal, pessoa ou ação..." />
+        <CommandList>
+          <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+          {channels.length > 0 && (
+            <CommandGroup heading="Ir para canal">
+              {channels.map((channel) => (
+                <CommandItem
+                  key={channel.id}
+                  value={`${channel.name} ${channel.kind}`}
+                  onSelect={() => {
+                    if (channel.kind === "voice") voice.join(channel.id);
+                    else setActive(channel.id);
+                    setNavOpen(false);
+                    setCommandOpen(false);
+                  }}
+                >
+                  {channel.kind === "voice" ? <Volume2 /> : <Hash />}
+                  <span>{channel.name}</span>
+                  <CommandShortcut>{channel.kind === "voice" ? "Voz" : "Texto"}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          <CommandGroup heading="Ações rápidas">
+            <CommandItem
+              onSelect={() => {
+                setSearchOpen(true);
+                setCommandOpen(false);
+              }}
+            >
+              <Search /> Buscar mensagens <CommandShortcut>Canal atual</CommandShortcut>
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setCommandOpen(false);
+                window.setTimeout(() => composerRef.current?.focus(), 0);
+              }}
+            >
+              <Pencil /> Escrever mensagem
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setMembersCollapsed(false);
+                setMobileMembersOpen(true);
+                setCommandOpen(false);
+              }}
+            >
+              <Users /> Ver membros
+            </CommandItem>
+            {me && (
+              <CommandItem
+                onSelect={() => {
+                  setEditing(true);
+                  setCommandOpen(false);
+                }}
+              >
+                <Settings2 /> Editar meu perfil
+              </CommandItem>
+            )}
+            {voice.channelId && (
+              <CommandItem
+                onSelect={() => {
+                  voice.leave();
+                  setCommandOpen(false);
+                }}
+              >
+                <PhoneOff /> Sair da chamada
+              </CommandItem>
+            )}
+          </CommandGroup>
+          {sortedMembers.length > 0 && (
+            <CommandGroup heading="Pessoas">
+              {sortedMembers.map((profile) => (
+                <CommandItem
+                  key={profile.id}
+                  value={`${nameOf(profile)} ${profile.username}`}
+                  onSelect={() => {
+                    setViewing(profile);
+                    setCommandOpen(false);
+                  }}
+                >
+                  <Users /> {nameOf(profile)}
+                  <CommandShortcut>{online.includes(profile.id) ? "Online" : "Offline"}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
+
       <ViewProfile
         status={viewing && online.includes(viewing.id) ? (viewing.status ?? "online") : "invisible"}
         p={viewing}
@@ -1175,11 +1365,13 @@ function ChannelGroup({
 
 function ChannelBtn({
   active,
+  unread = 0,
   onClick,
   onDelete,
   children,
 }: {
   active: boolean;
+  unread?: number;
   onClick: () => void;
   onDelete?: (() => void) | undefined;
   children: React.ReactNode;
@@ -1191,9 +1383,14 @@ function ChannelBtn({
       <Button
         variant="ghost"
         onClick={onClick}
-        className="h-auto min-h-9 min-w-0 flex-1 justify-start gap-2 overflow-hidden px-2 py-1.5 text-left text-sm font-medium [&>span]:truncate"
+        className="h-auto min-h-9 min-w-0 flex-1 justify-start gap-2 overflow-hidden px-2 py-1.5 text-left text-sm font-medium"
       >
         {children}
+        {unread > 0 && (
+          <span className="ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-none text-primary-foreground">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
       </Button>
       {onDelete && (
         <Button
