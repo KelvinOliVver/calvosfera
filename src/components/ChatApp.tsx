@@ -859,7 +859,7 @@ export function ChatApp({ userId }: { userId: string }) {
         </div>
       </aside>
       <aside
-        className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform md:static md:w-[228px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform duration-150 md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[68px] items-center gap-3 border-b border-border px-4">
           <span className="auth-brand-mark flex h-9 w-9 items-center justify-center rounded-xl text-lg font-extrabold text-primary-foreground">
@@ -894,7 +894,6 @@ export function ChatApp({ userId }: { userId: string }) {
           </label>
           <div className="mt-3 flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-online/50" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-online" />
             </span>
             <span>
@@ -1066,7 +1065,7 @@ export function ChatApp({ userId }: { userId: string }) {
 
       {/* Chat */}
       <main className="conversation-panel flex min-w-0 flex-1 flex-col bg-transparent">
-        <header className="chat-topbar z-10 flex h-[68px] shrink-0 items-center gap-3 border-b border-border px-3 sm:px-5">
+        <header className="chat-topbar z-10 flex h-[60px] shrink-0 items-center gap-3 border-b border-border px-3 sm:px-5">
           <Button
             variant="ghost"
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
@@ -1090,7 +1089,7 @@ export function ChatApp({ userId }: { userId: string }) {
                 : "Converse com a comunidade Calvosfera"}
             </span>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <IconBtn onClick={() => setSocialOpen(true)} label="Amigos e mensagens privadas">
               <Users className="h-4 w-4" />
             </IconBtn>
@@ -1318,7 +1317,7 @@ export function ChatApp({ userId }: { userId: string }) {
                 )}
                 <div
                   id={`message-${m.id}`}
-                  className={`message-row group mx-auto flex w-full max-w-[920px] gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/45 sm:px-3 ${isMine ? "justify-end" : ""} ${grouped ? "" : "mt-3"}`}
+                  className={`message-row group relative mx-auto flex w-full max-w-[920px] gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-accent/45 sm:px-3 ${isMine ? "justify-end" : ""} ${grouped ? "" : "mt-3"}`}
                 >
                   <div className={`w-9 shrink-0 ${isMine ? "order-2" : ""}`}>
                     {!grouped && (
@@ -1405,7 +1404,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     ) : (
                       m.content && (
                         <p
-                          className={`message-content whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all ${isMine ? "message-own-bubble text-white" : ""}`}
+                          className={`message-content whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90 [&_a]:break-all ${isMine ? "message-own-bubble" : ""}`}
                         >
                           <MessageText
                             text={m.content}
@@ -1432,7 +1431,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     </div>
                   </div>
                   <div
-                    className={`message-actions flex shrink-0 items-start gap-0.5 ${isMine ? "order-3" : ""}`}
+                    className="message-actions absolute right-3 top-0 z-20 flex items-center gap-0.5 rounded-lg border border-border bg-popover p-0.5 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 focus-within:opacity-100"
                   >
                     <Button
                       variant="ghost"
@@ -1440,7 +1439,7 @@ export function ChatApp({ userId }: { userId: string }) {
                         setReplyingTo(m);
                         composerRef.current?.focus();
                       }}
-                      className="h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                      className="h-8 w-8 p-1 text-muted-foreground"
                       aria-label="Responder mensagem"
                     >
                       <CornerUpLeft className="h-4 w-4" />
@@ -1448,7 +1447,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     <Button
                       variant="ghost"
                       onClick={() => setThreadRoot(m.reply_to ? messages.find((item) => item.id === m.reply_to) ?? m : m)}
-                      className="relative h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                      className="h-8 w-8 p-1 text-muted-foreground"
                       aria-label={`Abrir thread${messages.filter((item) => item.reply_to === m.id).length ? `, ${messages.filter((item) => item.reply_to === m.id).length} respostas` : ""}`}
                       title="Abrir thread"
                     >
@@ -1457,7 +1456,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     <Button
                       variant="ghost"
                       onClick={() => communityTools.toggleSavedMessage(m)}
-                      className={`h-8 w-8 p-1 opacity-0 transition group-hover:opacity-100 focus:opacity-100 ${communityTools.savedMessages.some((saved) => saved.id === m.id) ? "text-primary opacity-100" : "text-muted-foreground"}`}
+                      className={`h-8 w-8 p-1 ${communityTools.savedMessages.some((saved) => saved.id === m.id) ? "text-primary" : "text-muted-foreground"}`}
                       aria-label={
                         communityTools.savedMessages.some((saved) => saved.id === m.id)
                           ? "Remover mensagem salva"
@@ -1473,23 +1472,23 @@ export function ChatApp({ userId }: { userId: string }) {
                           setEditingMessageId(m.id);
                           setEditingContent(m.content);
                         }}
-                        className="h-8 w-8 p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                        className="h-8 w-8 p-1 text-muted-foreground"
                         aria-label="Editar mensagem"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
+                    {(m.user_id === userId || status?.isAdmin) && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => void deleteMessage(m.id)}
+                        className="h-8 w-8 p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Apagar mensagem"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {(m.user_id === userId || status?.isAdmin) && (
-                    <Button
-                      variant="ghost"
-                      onClick={() => void deleteMessage(m.id)}
-                      className="h-8 w-8 shrink-0 self-start p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
-                      aria-label="Apagar mensagem"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               </Fragment>
             );

@@ -27,7 +27,7 @@ export type AppPreferences = {
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   theme: "dark",
-  accent: "#a78bfa",
+  accent: "#56d6b5",
   density: "standard",
   textSize: "standard",
   showAvatars: true,
@@ -141,7 +141,7 @@ const THEMES: { id: AppTheme; label: string; description: string; icon: typeof M
   { id: "light", label: "Claro", description: "Interface luminosa", icon: Sun },
   { id: "amoled", label: "AMOLED", description: "Preto verdadeiro", icon: Moon },
 ];
-const ACCENTS = ["#a78bfa", "#60a5fa", "#34d399", "#f472b6", "#fb923c", "#facc15"];
+const ACCENTS = ["#56d6b5", "#60a5fa", "#8b7cf6", "#f472b6", "#fb923c", "#facc15"];
 
 export function AppPreferencesDialog({
   open,
