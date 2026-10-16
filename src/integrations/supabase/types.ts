@@ -152,6 +152,7 @@ export type Database = {
           display_name: string | null
           id: string
           pronouns: string | null
+          profile_extras: Json
           status: string
           theme_accent: string | null
           theme_primary: string | null
@@ -167,6 +168,7 @@ export type Database = {
           display_name?: string | null
           id: string
           pronouns?: string | null
+          profile_extras?: Json
           status?: string
           theme_accent?: string | null
           theme_primary?: string | null
@@ -182,6 +184,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           pronouns?: string | null
+          profile_extras?: Json
           status?: string
           theme_accent?: string | null
           theme_primary?: string | null

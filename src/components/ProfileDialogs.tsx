@@ -1,24 +1,27 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   Activity,
   Camera,
   ChevronDown,
-  Gamepad2,
+  ExternalLink,
   Heart,
   ImagePlus,
   LayoutGrid,
+  Link2,
   MessageCircle,
   MoreHorizontal,
   Palette,
   Plus,
   Sparkles,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import cityBanner from "@/assets/bg.jpg";
+import type { Json } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,10 +43,96 @@ export type Profile = {
   status?: string | null;
   custom_status?: string | null;
   created_at?: string;
+  profile_extras?: Json;
 };
 
 export const PROFILE_COLS =
-  "id,username,display_name,avatar_url,banner_url,banner_color,bio,pronouns,theme_primary,theme_accent,status,custom_status,created_at";
+  "id,username,display_name,avatar_url,banner_url,banner_color,bio,pronouns,theme_primary,theme_accent,status,custom_status,created_at,profile_extras";
+
+type ProfileConnection = { id: string; label: string; url: string };
+type ProfileWidget = { id: string; title: string; description: string; url: string };
+type AvatarFrame = "none" | "sakura" | "gold";
+type ProfileExtras = {
+  badge: string;
+  avatar_frame: AvatarFrame;
+  connections: ProfileConnection[];
+  widgets: ProfileWidget[];
+  wishlist: string[];
+};
+
+function profileExtras(value: Json | undefined): ProfileExtras {
+  const data =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as { [key: string]: Json | undefined })
+      : {};
+  const connections = Array.isArray(data["connections"])
+    ? data["connections"].flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const connection = item as { [key: string]: Json | undefined };
+        return typeof connection["id"] === "string" &&
+          typeof connection["label"] === "string" &&
+          typeof connection["url"] === "string"
+          ? [
+              {
+                id: connection["id"],
+                label: connection["label"],
+                url: connection["url"],
+              },
+            ]
+          : [];
+      })
+    : [];
+  const widgets = Array.isArray(data["widgets"])
+    ? data["widgets"].flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const widget = item as { [key: string]: Json | undefined };
+        return typeof widget["id"] === "string" &&
+          typeof widget["title"] === "string" &&
+          typeof widget["description"] === "string" &&
+          typeof widget["url"] === "string"
+          ? [
+              {
+                id: widget["id"],
+                title: widget["title"],
+                description: widget["description"],
+                url: widget["url"],
+              },
+            ]
+          : [];
+      })
+    : [];
+  const wishlist = Array.isArray(data["wishlist"])
+    ? data["wishlist"].filter((item): item is string => typeof item === "string")
+    : [];
+
+  return {
+    badge: typeof data["badge"] === "string" ? data["badge"] : "",
+    avatar_frame:
+      data["avatar_frame"] === "sakura" || data["avatar_frame"] === "gold"
+        ? data["avatar_frame"]
+        : "none",
+    connections,
+    widgets,
+    wishlist,
+  };
+}
+
+function avatarFrameClass(frame: AvatarFrame) {
+  if (frame === "sakura")
+    return "bg-gradient-to-br from-pink-200 via-fuchsia-500 to-pink-300 p-1.5 shadow-[0_0_18px_#ec489966]";
+  if (frame === "gold")
+    return "bg-gradient-to-br from-yellow-100 via-amber-500 to-yellow-200 p-1.5 shadow-[0_0_18px_#f59e0b66]";
+  return "bg-popover p-1.5 shadow-lg shadow-glow";
+}
+
+function safeExternalUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 export const STATUS_LABEL: Record<Status, string> = {
   online: "Disponível",
@@ -121,7 +210,7 @@ export function ProfileCard({
   status?: string | null | undefined;
   actions?: ReactNode;
 }) {
-  const hasDisplayName = !!p.display_name?.trim();
+  const extras = profileExtras(p.profile_extras);
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-popover shadow-2xl shadow-glow">
       <div className="relative overflow-hidden">
@@ -132,7 +221,7 @@ export function ProfileCard({
       </div>
       <div className="px-4 pb-4">
         <div className="relative -mt-10 mb-3 flex items-end justify-between">
-          <div className="rounded-full bg-popover p-1.5 shadow-lg shadow-glow">
+          <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
             <Avatar p={p} size={76} status={status} ring="border-popover" />
           </div>
         </div>
@@ -155,6 +244,11 @@ export function ProfileCard({
             />
           )}
         </div>
+        {extras.badge && (
+          <p className="mt-2 inline-flex rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+            {extras.badge}
+          </p>
+        )}
         {p.custom_status && (
           <div className="mt-4 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
@@ -187,6 +281,68 @@ export function ProfileCard({
             </p>
           </section>
         )}
+        {extras.connections.length > 0 && (
+          <section className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Conexões
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {extras.connections.map((connection) => {
+                const url = safeExternalUrl(connection.url);
+                return url ? (
+                  <a
+                    key={connection.id}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground/80 hover:bg-accent"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {connection.label}
+                  </a>
+                ) : null;
+              })}
+            </div>
+          </section>
+        )}
+        {extras.widgets.length > 0 && (
+          <section className="mt-4 space-y-2">
+            {extras.widgets.map((widget) => {
+              const url = safeExternalUrl(widget.url);
+              return (
+                <div key={widget.id} className="rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-sm font-semibold">{widget.title}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
+                    {widget.description}
+                  </p>
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Abrir link
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
+        {extras.wishlist.length > 0 && (
+          <section className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Lista de desejos
+            </p>
+            <ul className="list-inside list-disc space-y-1 text-sm text-foreground/80">
+              {extras.wishlist.map((item, index) => (
+                <li key={`${item}-${index}`}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        )}
         {actions && <div className="mt-4 flex flex-wrap gap-2">{actions}</div>}
       </div>
     </div>
@@ -206,7 +362,7 @@ export function ViewProfile({
 }) {
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[340px] gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-glow [&>button]:hidden">
+      <DialogContent className="max-h-[85vh] max-w-[340px] gap-0 overflow-y-auto border-0 bg-transparent p-0 shadow-glow [&>button]:hidden">
         <DialogTitle className="sr-only">Perfil de {p ? nameOf(p) : ""}</DialogTitle>
         {p && <ProfileCard p={p} status={status} actions={actions} />}
       </DialogContent>
@@ -293,6 +449,16 @@ export function EditProfile({
   const [profileTab, setProfileTab] = useState<"wall" | "activity" | "wishlist">("wall");
   const [draft, setDraft] = useState<Profile>(me);
   const [busy, setBusy] = useState<string | null>(null);
+  const [editorKind, setEditorKind] = useState<
+    "badge" | "connection" | "widget" | "wishlist" | null
+  >(null);
+  const [entryTitle, setEntryTitle] = useState("");
+  const [entryDescription, setEntryDescription] = useState("");
+  const [entryUrl, setEntryUrl] = useState("");
+  const [recentActivity, setRecentActivity] = useState<{ content: string; created_at: string }[]>(
+    [],
+  );
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
     if (open) setDraft(me);
@@ -305,8 +471,104 @@ export function EditProfile({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onOpenChange]);
 
+  useEffect(() => {
+    if (!open || profileTab !== "activity") return;
+    let cancelled = false;
+    setActivityLoading(true);
+    setRecentActivity([]);
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("messages")
+          .select("content,created_at")
+          .eq("user_id", me.id)
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if (cancelled) return;
+        if (error) {
+          setActivityLoading(false);
+          toast.error(`Não foi possível carregar a atividade: ${error.message}`);
+          return;
+        }
+        setRecentActivity(data ?? []);
+        setActivityLoading(false);
+      } catch (error) {
+        if (cancelled) return;
+        setActivityLoading(false);
+        toast.error(
+          `Não foi possível carregar a atividade: ${error instanceof Error ? error.message : "erro inesperado"}`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, profileTab, me.id]);
+
   const dirty = JSON.stringify(draft) !== JSON.stringify(me);
   const set = (patch: Partial<Profile>) => setDraft((d) => ({ ...d, ...patch }));
+  const extras = profileExtras(draft.profile_extras);
+  const setExtras = (patch: Partial<ProfileExtras>) =>
+    set({ profile_extras: { ...profileExtras(draft.profile_extras), ...patch } });
+
+  function openEditor(kind: NonNullable<typeof editorKind>) {
+    setEntryTitle("");
+    setEntryDescription("");
+    setEntryUrl("");
+    setEditorKind(kind);
+  }
+
+  function submitEditor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (editorKind === "badge") {
+      setExtras({ badge: entryTitle.trim().slice(0, 32) });
+    } else if (editorKind === "connection") {
+      const url = safeExternalUrl(entryUrl.trim());
+      if (!url) {
+        toast.error("Informe um link válido iniciado por https:// ou http://.");
+        return;
+      }
+      if (extras.connections.length >= 10) {
+        toast.error("Você pode adicionar até 10 conexões.");
+        return;
+      }
+      setExtras({
+        connections: [
+          ...extras.connections,
+          { id: crypto.randomUUID(), label: entryTitle.trim().slice(0, 32), url },
+        ],
+      });
+    } else if (editorKind === "widget") {
+      const validatedUrl = entryUrl.trim() ? safeExternalUrl(entryUrl.trim()) : "";
+      if (validatedUrl === null) {
+        toast.error("Informe um link válido iniciado por https:// ou http://.");
+        return;
+      }
+      if (extras.widgets.length >= 8) {
+        toast.error("Você pode adicionar até 8 widgets.");
+        return;
+      }
+      setExtras({
+        widgets: [
+          ...extras.widgets,
+          {
+            id: crypto.randomUUID(),
+            title: entryTitle.trim().slice(0, 48),
+            description: entryDescription.trim().slice(0, 240),
+            url: validatedUrl,
+          },
+        ],
+      });
+    } else if (editorKind === "wishlist") {
+      if (extras.wishlist.length >= 20) {
+        toast.error("Você pode adicionar até 20 itens à lista.");
+        return;
+      }
+      setExtras({ wishlist: [...extras.wishlist, entryTitle.trim().slice(0, 64)] });
+    }
+    setEditorKind(null);
+    toast.success("Adicionado à prévia. Salve as alterações para publicar.");
+  }
 
   async function pick(kind: "avatar" | "banner", file?: File) {
     if (!file) return;
@@ -336,6 +598,7 @@ export function EditProfile({
           banner_color: draft.banner_color ?? null,
           theme_primary: draft.theme_primary ?? null,
           theme_accent: draft.theme_accent ?? null,
+          profile_extras: profileExtras(draft.profile_extras),
         })
         .eq("id", me.id);
       if (error) {
@@ -380,11 +643,17 @@ export function EditProfile({
               <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#1b1b1e] p-2">
                 <Avatar p={draft} size={28} />
                 <span className="min-w-0 flex-1 truncate rounded-full bg-white/[0.13] px-2 py-1 text-xs text-white/65">
-                  @{draft.username}
+                  {extras.badge || `@${draft.username}`}
                 </span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#161619]">
+                <button
+                  type="button"
+                  onClick={() => openEditor("badge")}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#161619] transition hover:scale-110"
+                  aria-label="Editar placa de identificação"
+                  title="Editar placa de identificação"
+                >
                   <Plus className="h-4 w-4" />
-                </span>
+                </button>
               </div>
             </div>
 
@@ -401,7 +670,11 @@ export function EditProfile({
                     type="file"
                     accept="image/*"
                     className="sr-only"
-                    onChange={(e) => pick("avatar", e.target.files?.[0])}
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      e.currentTarget.value = "";
+                      void pick("avatar", file);
+                    }}
                   />
                 </label>
               </div>
@@ -461,7 +734,11 @@ export function EditProfile({
                     type="file"
                     accept="image/*"
                     className="sr-only"
-                    onChange={(e) => pick("banner", e.target.files?.[0])}
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      e.currentTarget.value = "";
+                      void pick("banner", file);
+                    }}
                   />
                 </label>
               </div>
@@ -485,16 +762,33 @@ export function EditProfile({
                     className="h-full w-full object-cover opacity-60"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar p={draft} size={38} />
+                    <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
+                      <Avatar p={draft} size={38} />
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => toast("Molduras de perfil estarão disponíveis em breve.")}
-                  className="flex h-[82px] flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/[0.15] bg-[#171719] text-xs text-white/55 hover:bg-white/[0.05]"
-                >
-                  <Plus className="h-5 w-5" />
-                  Ver molduras
-                </button>
+                <div className="flex h-[82px] flex-1 flex-col justify-center gap-1 rounded-lg border border-white/[0.1] bg-[#171719] p-2">
+                  {(
+                    [
+                      ["none", "Padrão"],
+                      ["sakura", "Sakura"],
+                      ["gold", "Dourada"],
+                    ] as const
+                  ).map(([frame, label]) => (
+                    <button
+                      key={frame}
+                      type="button"
+                      onClick={() => setExtras({ avatar_frame: frame })}
+                      className={`rounded px-2 py-1 text-left text-xs transition ${
+                        extras.avatar_frame === frame
+                          ? "bg-primary/25 text-white"
+                          : "text-white/55 hover:bg-white/[0.08] hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -508,6 +802,7 @@ export function EditProfile({
                 className="border-white/[0.08] bg-[#1b1b1e]"
               />
               <Input
+                id="profile-status-input"
                 value={draft.custom_status ?? ""}
                 onChange={(e) => set({ custom_status: e.target.value })}
                 placeholder="Status personalizado"
@@ -583,18 +878,24 @@ export function EditProfile({
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => pick("banner", e.target.files?.[0])}
+                onChange={(e) => {
+                  const file = e.currentTarget.files?.[0];
+                  e.currentTarget.value = "";
+                  void pick("banner", file);
+                }}
               />
             </div>
             <div className="relative px-6 pb-8">
               <div className="-mt-12 mb-3 flex items-end justify-between">
                 <div className="rounded-full bg-[#0c0909] p-1.5">
-                  <Avatar
-                    p={draft}
-                    size={88}
-                    status={draft.status ?? "online"}
-                    ring="border-[#0c0909]"
-                  />
+                  <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
+                    <Avatar
+                      p={draft}
+                      size={88}
+                      status={draft.status ?? "online"}
+                      ring="border-[#0c0909]"
+                    />
+                  </div>
                 </div>
                 <span className="mb-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-2.5 py-1 text-[11px] text-white/75">
                   Calvosfera
@@ -607,6 +908,11 @@ export function EditProfile({
                     @{draft.username}
                     {draft.pronouns && ` · ${draft.pronouns}`}
                   </p>
+                  {extras.badge && (
+                    <span className="mt-2 inline-flex rounded-full bg-white/[0.1] px-2.5 py-1 text-xs font-semibold text-white/80">
+                      {extras.badge}
+                    </span>
+                  )}
                   {draft.custom_status && (
                     <div className="mt-4 rounded-lg border border-white/[0.08] bg-white/[0.05] px-3 py-2 text-sm text-white/80">
                       {draft.custom_status}
@@ -639,20 +945,71 @@ export function EditProfile({
                   </section>
                   <section className="mb-6">
                     <p className="mb-2 text-xs font-bold text-white/60">Conexões</p>
+                    {extras.connections.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {extras.connections.map((connection) => {
+                          const url = safeExternalUrl(connection.url);
+                          return url ? (
+                            <span
+                              key={connection.id}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.12] bg-white/[0.05] px-2.5 py-1.5 text-xs text-white/75"
+                            >
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 hover:text-white"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                {connection.label}
+                              </a>
+                              <button
+                                onClick={() =>
+                                  setExtras({
+                                    connections: extras.connections.filter(
+                                      (item) => item.id !== connection.id,
+                                    ),
+                                  })
+                                }
+                                className="rounded text-white/45 hover:text-white"
+                                aria-label={`Remover conexão ${connection.label}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                     <button
-                      onClick={() => toast("Conexões estarão disponíveis em breve.")}
+                      onClick={() => openEditor("connection")}
                       className="text-sm text-white/70 transition hover:text-white"
                     >
                       <Plus className="mr-1 inline h-4 w-4" /> Adicionar conexão
                     </button>
                   </section>
                   <div className="flex gap-2">
-                    <button className="flex items-center gap-2 rounded-lg bg-white/[0.13] px-4 py-2 text-sm font-semibold text-white/70">
-                      <MessageCircle className="h-4 w-4" /> Mensagem
+                    <button
+                      onClick={() => {
+                        setTab("profile");
+                        document.getElementById("profile-status-input")?.focus();
+                      }}
+                      className="flex items-center gap-2 rounded-lg bg-white/[0.13] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.2]"
+                    >
+                      <MessageCircle className="h-4 w-4" /> Editar status
                     </button>
                     <button
-                      className="rounded-lg bg-white/[0.1] p-2 text-white/80"
-                      aria-label="Mais opções"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(`@${draft.username}`);
+                          toast.success("Nome de usuário copiado.");
+                        } catch {
+                          toast.error("Não foi possível copiar o nome de usuário.");
+                        }
+                      }}
+                      className="rounded-lg bg-white/[0.1] p-2 text-white/80 transition hover:bg-white/[0.18]"
+                      aria-label="Copiar nome de usuário"
+                      title="Copiar nome de usuário"
                     >
                       <MoreHorizontal className="h-5 w-5" />
                     </button>
@@ -708,64 +1065,201 @@ export function EditProfile({
                   ? "Atividade recente"
                   : "Lista de desejos"}
             </p>
-            <button
-              onClick={() => toast("Widgets e integrações estarão disponíveis em breve.")}
-              className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-[#242123] px-3 py-2 text-xs font-medium text-white/75 transition hover:bg-white/[0.1]"
-            >
-              <Plus className="h-4 w-4" /> Adicionar widget
-            </button>
+            {profileTab !== "activity" && (
+              <button
+                onClick={() => openEditor(profileTab === "wall" ? "widget" : "wishlist")}
+                className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-[#242123] px-3 py-2 text-xs font-medium text-white/75 transition hover:bg-white/[0.1]"
+              >
+                <Plus className="h-4 w-4" />
+                {profileTab === "wall" ? "Adicionar widget" : "Adicionar item"}
+              </button>
+            )}
           </div>
 
-          {profileTab === "wall" ? (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#21191b]">
-              <div className="relative min-h-[152px] overflow-hidden border-b border-white/[0.07] p-4">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#39272b] via-[#261d20] to-[#1c1719]" />
-                <div className="absolute -right-4 -top-10 h-48 w-48 rounded-full bg-fuchsia-300/[0.08] blur-3xl" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-white/85">
-                    <Gamepad2 className="h-4 w-4 text-pink-200" /> Widget de jogos
-                  </div>
-                  <div className="mt-8 grid max-w-[78%] grid-cols-2 gap-x-5 gap-y-4">
-                    {["Nível", "Jogos", "Conquistas", "Atividade"].map((label) => (
-                      <div key={label} className="space-y-1.5">
-                        <div className="h-3 w-20 rounded-full bg-white/[0.12]" />
-                        <p className="text-[10px] text-white/50">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="rounded-xl border border-white/[0.07] bg-[#30282a] p-4">
-                  <p className="text-sm font-semibold">
-                    Conecte sua conta para ver suas estatísticas
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-white/55">
-                    Este widget não aparecerá no seu perfil até que você conecte uma conta.
-                  </p>
-                  <button
-                    onClick={() => toast("Integração de jogos estará disponível em breve.")}
-                    className="mt-3 rounded-md bg-white/[0.18] px-4 py-2 text-sm font-semibold transition hover:bg-white/[0.25]"
-                  >
-                    Conectar
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4 flex min-h-56 flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#171416] px-6 text-center">
-              {profileTab === "activity" ? (
-                <Activity className="mb-3 h-8 w-8 text-white/35" />
-              ) : (
-                <Heart className="mb-3 h-8 w-8 text-white/35" />
-              )}
-              <p className="text-sm font-semibold text-white/75">
-                {profileTab === "activity" ? "Sem atividade para mostrar" : "Sua lista está vazia"}
+          {editorKind && (
+            <form
+              onSubmit={submitEditor}
+              className="mt-4 space-y-3 rounded-xl border border-white/[0.1] bg-[#211d1f] p-4"
+            >
+              <p className="text-sm font-semibold">
+                {editorKind === "badge" ? (
+                  "Placa de identificação"
+                ) : editorKind === "connection" ? (
+                  <>
+                    <Link2 className="mr-2 inline h-4 w-4" />
+                    Adicionar conexão
+                  </>
+                ) : editorKind === "widget" ? (
+                  "Criar widget"
+                ) : (
+                  "Adicionar à lista de desejos"
+                )}
               </p>
+              <Input
+                autoFocus
+                value={entryTitle}
+                onChange={(event) => setEntryTitle(event.target.value)}
+                maxLength={editorKind === "wishlist" ? 64 : editorKind === "widget" ? 48 : 32}
+                required={editorKind !== "badge"}
+                placeholder={
+                  editorKind === "connection"
+                    ? "Nome (ex.: Instagram)"
+                    : editorKind === "widget"
+                      ? "Título do widget"
+                      : editorKind === "wishlist"
+                        ? "Jogo, anime ou interesse"
+                        : "Texto da placa"
+                }
+                className="border-white/[0.1] bg-[#121012]"
+              />
+              {(editorKind === "connection" || editorKind === "widget") && (
+                <Input
+                  value={entryUrl}
+                  onChange={(event) => setEntryUrl(event.target.value)}
+                  type="url"
+                  required={editorKind === "connection"}
+                  placeholder={
+                    editorKind === "connection" ? "https://..." : "Link opcional (https://...)"
+                  }
+                  className="border-white/[0.1] bg-[#121012]"
+                />
+              )}
+              {editorKind === "widget" && (
+                <Textarea
+                  value={entryDescription}
+                  onChange={(event) => setEntryDescription(event.target.value)}
+                  maxLength={240}
+                  rows={3}
+                  required
+                  placeholder="Descrição ou conteúdo do widget"
+                  className="border-white/[0.1] bg-[#121012]"
+                />
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditorKind(null)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" size="sm">
+                  Adicionar
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {profileTab === "wall" ? (
+            extras.widgets.length ? (
+              <div className="mt-4 space-y-3">
+                {extras.widgets.map((widget) => {
+                  const url = safeExternalUrl(widget.url);
+                  return (
+                    <article
+                      key={widget.id}
+                      className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#21191b]"
+                    >
+                      <div className="flex items-start justify-between gap-3 bg-gradient-to-r from-[#39272b] via-[#261d20] to-[#1c1719] p-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white/90">{widget.title}</p>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-white/65">
+                            {widget.description}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setExtras({
+                              widgets: extras.widgets.filter((item) => item.id !== widget.id),
+                            })
+                          }
+                          className="shrink-0 rounded p-1 text-white/45 hover:bg-white/[0.1] hover:text-white"
+                          aria-label={`Remover widget ${widget.title}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {url && (
+                        <div className="p-3">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-md bg-white/[0.14] px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/[0.2]"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Abrir conexão
+                          </a>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-4 flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.12] bg-[#171416] px-6 text-center">
+                <LayoutGrid className="mb-3 h-8 w-8 text-white/35" />
+                <p className="text-sm font-semibold text-white/75">Seu mural está vazio</p>
+                <p className="mt-1 max-w-xs text-xs leading-relaxed text-white/45">
+                  Crie widgets com texto, links e informações que queira compartilhar.
+                </p>
+              </div>
+            )
+          ) : profileTab === "activity" ? (
+            <div className="mt-4 space-y-2">
+              {activityLoading ? (
+                <div className="flex min-h-56 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#171416] text-sm text-white/50">
+                  Carregando atividade…
+                </div>
+              ) : recentActivity.length ? (
+                recentActivity.map((item, index) => (
+                  <article
+                    key={`${item.created_at}-${index}`}
+                    className="rounded-xl border border-white/[0.08] bg-[#171416] p-4"
+                  >
+                    <p className="whitespace-pre-wrap break-words text-sm text-white/80">
+                      {item.content}
+                    </p>
+                    <time className="mt-2 block text-xs text-white/40">
+                      {new Date(item.created_at).toLocaleString("pt-BR")}
+                    </time>
+                  </article>
+                ))
+              ) : (
+                <div className="flex min-h-56 flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#171416] px-6 text-center">
+                  <Activity className="mb-3 h-8 w-8 text-white/35" />
+                  <p className="text-sm font-semibold text-white/75">Sem atividade recente</p>
+                  <p className="mt-1 max-w-xs text-xs leading-relaxed text-white/45">
+                    Suas mensagens recentes nos canais aparecerão aqui.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : extras.wishlist.length ? (
+            <ul className="mt-4 space-y-2">
+              {extras.wishlist.map((item, index) => (
+                <li
+                  key={`${item}-${index}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#171416] p-3"
+                >
+                  <Heart className="h-4 w-4 shrink-0 text-pink-300" />
+                  <span className="min-w-0 flex-1 break-words text-sm text-white/80">{item}</span>
+                  <button
+                    onClick={() =>
+                      setExtras({
+                        wishlist: extras.wishlist.filter((_, itemIndex) => itemIndex !== index),
+                      })
+                    }
+                    className="rounded p-1 text-white/40 hover:bg-white/[0.08] hover:text-white"
+                    aria-label={`Remover ${item} da lista de desejos`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-4 flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.12] bg-[#171416] px-6 text-center">
+              <Heart className="mb-3 h-8 w-8 text-white/35" />
+              <p className="text-sm font-semibold text-white/75">Sua lista está vazia</p>
               <p className="mt-1 max-w-xs text-xs leading-relaxed text-white/45">
-                {profileTab === "activity"
-                  ? "Quando você participar das conversas, suas atividades aparecerão aqui."
-                  : "Adicione seus jogos, animes e interesses favoritos ao seu perfil."}
+                Adicione jogos, animes ou interesses para compartilhar no seu perfil.
               </p>
             </div>
           )}
