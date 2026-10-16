@@ -36,6 +36,7 @@
   --color-online: var(--online);
   --color-idle: var(--idle);
   --color-dnd: var(--dnd);
+  --color-scrim: var(--scrim);
   --color-mention: var(--mention);
   --color-mention-bar: var(--mention-bar);
   --color-ring-offset-background: var(--background);
@@ -72,10 +73,12 @@
   --gradient-sakura: linear-gradient(135deg, oklch(0.78 0.18 348), oklch(0.88 0.12 214));
   --gradient-aurora: radial-gradient(circle at top left, oklch(0.74 0.18 348 / 0.42), transparent 36%), radial-gradient(circle at bottom right, oklch(0.7 0.18 214 / 0.38), transparent 34%);
   --shadow-glow: 0 24px 70px -28px oklch(0.08 0.04 280 / 75%);
+  --scrim: oklch(0.07 0.008 280 / 78%);
 }
 
 @layer base {
   * { box-sizing: border-box; border-color: var(--color-border); }
+  html { color-scheme: dark; }
   html { scroll-behavior: smooth; }
   body {
     min-height: 100vh;
@@ -84,9 +87,11 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
   }
   #root { min-height: 100vh; }
   h1, h2, h3, h4 { font-family: var(--font-display); }
+  button, input, textarea { font: inherit; }
 }
 
 @layer components {
