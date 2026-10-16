@@ -36,8 +36,10 @@ import {
   Avatar,
   EditProfile,
   ViewProfile,
+  LEGACY_PROFILE_COLS,
   PROFILE_COLS,
   nameOf,
+  readProfileExtrasCache,
   type Profile,
 } from "./ProfileDialogs";
 import communityBanner from "@/assets/bg.jpg";
@@ -134,8 +136,25 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   const loadProfiles = async () => {
-    const { data } = await supabase.from("profiles").select(PROFILE_COLS);
-    if (data) setProfiles(Object.fromEntries(data.map((p) => [p.id, p])));
+    const primary = await supabase.from("profiles").select(PROFILE_COLS);
+    let data: Profile[] | null = primary.data;
+    let error = primary.error;
+    if (error) {
+      const fallback = await supabase.from("profiles").select(LEGACY_PROFILE_COLS);
+      data =
+        fallback.data?.map((profile) => ({
+          ...profile,
+          profile_extras: readProfileExtrasCache(profile.id) ?? null,
+        })) ?? null;
+      error = fallback.error;
+    }
+    if (error) {
+      toast.error(`Não foi possível carregar os perfis: ${error.message}`);
+      return;
+    }
+    if (data) {
+      setProfiles(Object.fromEntries(data.map((profile) => [profile.id, profile])));
+    }
   };
 
   const loadChannels = async () => {

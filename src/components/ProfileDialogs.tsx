@@ -48,6 +48,27 @@ export type Profile = {
 
 export const PROFILE_COLS =
   "id,username,display_name,avatar_url,banner_url,banner_color,bio,pronouns,theme_primary,theme_accent,status,custom_status,created_at,profile_extras";
+export const LEGACY_PROFILE_COLS =
+  "id,username,display_name,avatar_url,banner_url,banner_color,bio,pronouns,theme_primary,theme_accent,status,custom_status,created_at";
+
+const profileExtrasCacheKey = (userId: string) => `calvosfera:profile-extras:${userId}`;
+
+export function readProfileExtrasCache(userId: string): Json | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const value = window.localStorage.getItem(profileExtrasCacheKey(userId));
+    return value ? (JSON.parse(value) as Json) : undefined;
+  } catch (error) {
+    toast.error(
+      `Não foi possível ler as opções salvas neste dispositivo: ${error instanceof Error ? error.message : "erro inesperado"}`,
+    );
+    return undefined;
+  }
+}
+
+export function writeProfileExtrasCache(userId: string, value: Json) {
+  window.localStorage.setItem(profileExtrasCacheKey(userId), JSON.stringify(value));
+}
 
 type ProfileConnection = { id: string; label: string; url: string };
 type ProfileWidget = { id: string; title: string; description: string; url: string };
@@ -461,7 +482,14 @@ export function EditProfile({
   const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
-    if (open) setDraft(me);
+    if (open) {
+      const cachedExtras = readProfileExtrasCache(me.id);
+      const extrasValue = me.profile_extras ?? cachedExtras;
+      setDraft({
+        ...me,
+        ...(extrasValue === undefined ? {} : { profile_extras: extrasValue }),
+      });
+    }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -586,6 +614,7 @@ export function EditProfile({
   async function save() {
     setBusy("save");
     try {
+      const extrasToSave = profileExtras(draft.profile_extras);
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -598,15 +627,42 @@ export function EditProfile({
           banner_color: draft.banner_color ?? null,
           theme_primary: draft.theme_primary ?? null,
           theme_accent: draft.theme_accent ?? null,
-          profile_extras: profileExtras(draft.profile_extras),
         })
         .eq("id", me.id);
       if (error) {
         toast.error(error.message);
         return;
       }
-      onSaved(draft);
-      toast.success("Alterações salvas");
+      try {
+        writeProfileExtrasCache(me.id, extrasToSave);
+      } catch (error) {
+        toast.error(
+          `Perfil salvo, mas não foi possível guardar widgets e conexões neste dispositivo: ${error instanceof Error ? error.message : "erro inesperado"}`,
+        );
+      }
+
+      const { error: extrasError } = await supabase
+        .from("profiles")
+        .update({ profile_extras: extrasToSave })
+        .eq("id", me.id);
+      const savedProfile = { ...draft, profile_extras: extrasToSave };
+      onSaved(savedProfile);
+
+      if (
+        extrasError?.code === "42703" ||
+        extrasError?.code === "PGRST204" ||
+        extrasError?.message.includes("profile_extras")
+      ) {
+        toast.warning(
+          "Perfil salvo. Widgets, conexões e moldura ficam neste dispositivo até a migração do banco ser aplicada.",
+        );
+      } else if (extrasError) {
+        toast.error(
+          `Perfil salvo, mas não foi possível sincronizar widgets e conexões: ${extrasError.message}`,
+        );
+      } else {
+        toast.success("Alterações salvas");
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
