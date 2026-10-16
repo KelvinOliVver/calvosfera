@@ -158,10 +158,10 @@ function profileExtras(value: Json | undefined): ProfileExtras {
 
 function avatarFrameClass(frame: AvatarFrame) {
   if (frame === "sakura")
-    return "bg-gradient-to-br from-pink-200 via-fuchsia-500 to-pink-300 p-1.5 shadow-[0_0_18px_#ec489966]";
+    return "bg-gradient-to-br from-pink-200 via-fuchsia-500 to-pink-300 p-1.5";
   if (frame === "gold")
-    return "bg-gradient-to-br from-yellow-100 via-amber-500 to-yellow-200 p-1.5 shadow-[0_0_18px_#f59e0b66]";
-  return "bg-popover p-1.5 shadow-lg shadow-glow";
+    return "bg-gradient-to-br from-yellow-100 via-amber-500 to-yellow-200 p-1.5";
+  return "bg-popover p-1.5";
 }
 
 function safeExternalUrl(value: string) {
@@ -275,7 +275,7 @@ export function ProfileCard({
 
   return (
     <div
-      className="profile-card w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-glow"
+      className="profile-card w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/20"
       style={
         {
           "--profile-accent": p.theme_primary || "var(--primary)",
@@ -305,12 +305,7 @@ export function ProfileCard({
           <Sparkles className="h-3 w-3" /> PERFIL DA CALVOSFERA
         </div>
       </div>
-      <div
-        className="profile-card-content px-4 pb-4"
-        style={{
-          background: `radial-gradient(ellipse at 8% 0%, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 28%, transparent), transparent 52%), linear-gradient(155deg, color-mix(in srgb, ${p.theme_primary || "var(--primary)"} 32%, var(--popover)) 0%, color-mix(in srgb, ${p.theme_accent || p.theme_primary || "var(--secondary)"} 20%, var(--popover)) 38%, var(--popover) 82%)`,
-        }}
-      >
+      <div className="profile-card-content px-4 pb-4" style={{ background: "var(--popover)" }}>
         <div className="relative -mt-11 mb-3 flex items-end justify-between">
           <div
             className={`rounded-full ring-4 ring-popover ${avatarFrameClass(extras.avatar_frame)}`}

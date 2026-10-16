@@ -39,56 +39,34 @@ export function AuthScreen() {
         className="absolute inset-0 -z-20 h-full w-full object-cover"
       />
       <div className="auth-overlay absolute inset-0 -z-10" />
-      <div className="pointer-events-none absolute -left-28 top-1/3 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-secondary/15 blur-3xl" />
-      <header className="relative flex items-center gap-3 px-6 py-7 sm:px-12">
-        <span className="auth-brand-mark flex h-10 w-10 items-center justify-center rounded-xl text-xl font-extrabold text-primary-foreground">
+      <header className="relative flex items-center gap-3 px-6 py-6 sm:px-10">
+        <span className="auth-brand-mark flex h-9 w-9 items-center justify-center rounded-lg text-lg font-bold text-primary-foreground">
           C
         </span>
-        <span className="text-lg font-extrabold tracking-tight">
-          Calvosfera<span className="text-secondary">.</span>
-        </span>
+        <span className="text-base font-semibold tracking-tight">Calvosfera</span>
       </header>
-      <main className="mx-auto grid min-h-[calc(100dvh-100px)] max-w-7xl items-center gap-16 px-6 pb-14 md:grid-cols-2 sm:px-12">
-        <div className="hidden self-end pb-20 md:block">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-primary">
-            カルボスフェラ
+      <main className="mx-auto grid min-h-[calc(100dvh-84px)] max-w-6xl items-center gap-10 px-6 pb-10 md:grid-cols-[minmax(0,1fr)_400px] sm:px-10">
+        <div className="hidden max-w-xl md:block">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Comunidade Calvosfera
           </p>
-          <h1 className="font-sans text-5xl font-extrabold leading-tight">
-            Calvosfera<span className="text-secondary">.</span>
+          <h1 className="max-w-lg text-4xl font-semibold leading-[1.12] tracking-tight lg:text-5xl">
+            Converse, jogue e fique por dentro.
           </h1>
-          <p className="mt-5 max-w-sm text-lg leading-relaxed text-foreground/85">
-            A sua casa no universo da Calvosfera. Canais de texto, calls de voz e perfis com GIF.
+          <p className="mt-5 max-w-md text-base leading-7 text-white/75">
+            Entre nos canais, encontre sua comunidade e continue de onde a conversa parou.
           </p>
-          <div className="mt-8 grid max-w-md grid-cols-3 gap-3">
-            {[
-              ["Texto", "chat ao vivo"],
-              ["Voz", "salas de call"],
-              ["Perfis", "estilo & vibe"],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 backdrop-blur-sm"
-              >
-                <p className="text-[10px] uppercase tracking-wider text-white/50">{label}</p>
-                <p className="mt-1 text-xs font-medium text-white/90">{value}</p>
-              </div>
-            ))}
-          </div>
         </div>
-        <div className="auth-card mx-auto w-full max-w-[420px] rounded-3xl border border-white/10 bg-rail/85 p-7 backdrop-blur-2xl sm:p-9 md:ml-auto md:mr-0">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Sua comunidade anime
-          </span>
-          <h2 className="font-sans text-3xl font-extrabold tracking-tight">
-            {mode === "in" ? "Bom te ver de novo." : "Seu lugar é aqui."}
+        <div className="auth-card mx-auto w-full max-w-[400px] rounded-2xl border border-border bg-panel p-7 sm:p-8 md:ml-auto md:mr-0">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {mode === "in" ? "Entrar" : "Criar sua conta"}
           </h2>
-          <p className="mb-8 mt-3 text-sm leading-relaxed text-muted-foreground">
+          <p className="mb-7 mt-2 text-sm leading-relaxed text-muted-foreground">
             {mode === "in"
-              ? "Entre para continuar de onde a conversa parou."
-              : "Escolha seu nick e venha fazer parte."}
+              ? "Acesse sua conta para voltar à comunidade."
+              : "Escolha um nick e faça parte da comunidade."}
           </p>
-          <form onSubmit={submit} className="space-y-5">
+          <form onSubmit={submit} className="space-y-4">
             <Field label="Nick">
               <Input
                 value={username}
@@ -97,7 +75,7 @@ export function AuthScreen() {
                 maxLength={64}
                 autoComplete="username"
                 placeholder="Seu nick"
-                className="h-12 border-white/10 bg-background/70 transition-colors focus-visible:border-primary/60"
+                className="h-11 border-input bg-background transition-colors focus-visible:border-primary/60"
               />
             </Field>
             <Field label="Senha">
@@ -109,18 +87,18 @@ export function AuthScreen() {
                 minLength={6}
                 autoComplete={mode === "in" ? "current-password" : "new-password"}
                 placeholder="Sua senha"
-                className="h-12 border-white/10 bg-background/70 transition-colors focus-visible:border-primary/60"
+                className="h-11 border-input bg-background transition-colors focus-visible:border-primary/60"
               />
             </Field>
             <Button
               type="submit"
               disabled={busy}
-              className="mt-2 h-12 w-full rounded-xl font-bold shadow-lg shadow-primary/10 transition-transform hover:-translate-y-0.5"
+              className="mt-2 h-11 w-full rounded-lg font-semibold"
             >
               {busy ? "Aguarde…" : mode === "in" ? "Entrar na Calvosfera" : "Criar conta"}
             </Button>
           </form>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
             <span>{mode === "in" ? "Ainda não tem conta?" : "Já faz parte?"}</span>
             <Button
               variant="link"

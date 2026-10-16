@@ -853,7 +853,7 @@ export function ChatApp({ userId }: { userId: string }) {
         <div
           title="Calvosfera"
           aria-current="page"
-          className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-lg font-extrabold text-primary-foreground shadow-lg shadow-primary/20 transition hover:rounded-xl"
+          className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <span className="absolute -left-[13px] h-8 rounded-r-full bg-foreground" />C
         </div>
@@ -862,7 +862,7 @@ export function ChatApp({ userId }: { userId: string }) {
         className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform duration-150 md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[68px] items-center gap-3 border-b border-border px-4">
-          <span className="auth-brand-mark flex h-9 w-9 items-center justify-center rounded-xl text-lg font-extrabold text-primary-foreground">
+          <span className="auth-brand-mark flex h-9 w-9 items-center justify-center rounded-lg text-lg font-bold text-primary-foreground">
             C
           </span>
           <span className="min-w-0 flex-1 text-left">
@@ -1258,7 +1258,7 @@ export function ChatApp({ userId }: { userId: string }) {
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button
                     onClick={() => composerRef.current?.focus()}
-                    className="rounded-xl font-semibold shadow-lg shadow-primary/15"
+                    className="rounded-lg font-semibold"
                   >
                     <Pencil className="mr-2 h-4 w-4" /> Começar uma conversa
                   </Button>
@@ -1541,7 +1541,7 @@ export function ChatApp({ userId }: { userId: string }) {
               {mutedUntil.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5 shadow-lg shadow-black/10 transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-panel px-3 py-2.5 transition-colors focus-within:border-primary/45 focus-within:ring-1 focus-within:ring-primary/15">
               <Button
                 variant="ghost"
                 type="button"
