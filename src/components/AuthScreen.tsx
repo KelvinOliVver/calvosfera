@@ -42,7 +42,7 @@ export function AuthScreen() {
       <div className="pointer-events-none absolute -left-28 top-1/3 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-secondary/15 blur-3xl" />
       <header className="relative flex items-center gap-3 px-6 py-7 sm:px-12">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-xl font-extrabold text-primary-foreground shadow-lg shadow-primary/20">
+        <span className="auth-brand-mark flex h-10 w-10 items-center justify-center rounded-xl text-xl font-extrabold text-primary-foreground">
           C
         </span>
         <span className="text-lg font-extrabold tracking-tight">
@@ -76,7 +76,7 @@ export function AuthScreen() {
             ))}
           </div>
         </div>
-        <div className="mx-auto w-full max-w-[420px] rounded-3xl border border-white/10 bg-rail/75 p-7 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-9 md:ml-auto md:mr-0">
+        <div className="auth-card mx-auto w-full max-w-[420px] rounded-3xl border border-white/10 bg-rail/85 p-7 backdrop-blur-2xl sm:p-9 md:ml-auto md:mr-0">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Sua comunidade anime
           </span>

@@ -484,7 +484,7 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground">
+    <div className="chat-workspace flex h-dvh min-h-0 overflow-hidden text-foreground">
       {/* Channels */}
       {navOpen && (
         <div
@@ -502,7 +502,7 @@ export function ChatApp({ userId }: { userId: string }) {
         </div>
       </aside>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-panel transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`chat-sidebar fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border transition-transform md:static md:w-[248px] md:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[58px] items-center gap-3 border-b border-border px-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
@@ -638,8 +638,8 @@ export function ChatApp({ userId }: { userId: string }) {
       </aside>
 
       {/* Chat */}
-      <main className="flex min-w-0 flex-1 flex-col bg-background">
-        <header className="z-10 flex h-[58px] shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 shadow-sm backdrop-blur-xl sm:px-5">
+      <main className="flex min-w-0 flex-1 flex-col bg-transparent">
+        <header className="chat-topbar z-10 flex h-[64px] shrink-0 items-center gap-3 border-b border-border px-3 sm:px-5">
           <Button
             variant="ghost"
             className="-ml-1 rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
@@ -1168,7 +1168,7 @@ function ChannelBtn({
 }) {
   return (
     <div
-      className={`group/ch flex min-h-9 items-center rounded-md border-l-2 transition-colors ${active ? "border-primary bg-primary/[0.1] text-foreground" : "border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"}`}
+      className={`group/ch flex min-h-9 items-center rounded-md border-l-2 transition-colors ${active ? "channel-active border-primary bg-primary/[0.1] text-foreground" : "border-transparent text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"}`}
     >
       <Button
         variant="ghost"
