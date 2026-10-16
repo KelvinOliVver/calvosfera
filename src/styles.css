@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Dela Gothic One", system-ui, sans-serif;
-  --font-sans: "Zen Kaku Gothic New", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -41,41 +41,37 @@
 }
 
 :root {
-  --radius: 0.65rem;
-  --background: oklch(0.105 0.025 285);
-  --foreground: oklch(0.95 0.012 285);
-  --rail: oklch(0.09 0.025 285);
-  --panel: oklch(0.125 0.03 285);
-  --card: oklch(0.17 0.035 285);
-  --card-foreground: oklch(0.96 0.015 285);
-  --popover: oklch(0.15 0.035 285);
-  --popover-foreground: oklch(0.96 0.015 285);
-  --primary: oklch(0.69 0.18 292);
-  --primary-foreground: oklch(0.15 0.04 285);
-  --secondary: oklch(0.62 0.15 270);
-  --secondary-foreground: oklch(0.97 0.01 285);
-  --muted: oklch(0.2 0.03 285);
-  --muted-foreground: oklch(0.72 0.025 285);
-  --accent: oklch(0.24 0.05 285);
-  --accent-foreground: oklch(0.97 0.01 285);
-  --destructive: oklch(0.65 0.22 25);
+  --radius: 0.5rem;
+  --background: oklch(0.17 0.006 270);
+  --foreground: oklch(0.94 0.004 270);
+  --rail: oklch(0.125 0.005 270);
+  --panel: oklch(0.205 0.008 270);
+  --card: oklch(0.235 0.009 270);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.205 0.008 270);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.81 0.12 172);
+  --primary-foreground: oklch(0.18 0.025 172);
+  --secondary: oklch(0.76 0.14 350);
+  --secondary-foreground: oklch(0.18 0.025 350);
+  --muted: oklch(0.255 0.008 270);
+  --muted-foreground: oklch(0.68 0.012 270);
+  --accent: oklch(0.29 0.009 270);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.7 0.19 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --online: oklch(0.72 0.17 150);
+  --online: oklch(0.77 0.15 155);
   --idle: oklch(0.8 0.15 80);
-  --dnd: oklch(0.63 0.21 25);
+  --dnd: var(--destructive);
   --mention: oklch(0.8 0.15 80 / 10%);
   --mention-bar: oklch(0.8 0.15 80);
-  --border: oklch(0.85 0.04 285 / 12%);
-  --input: oklch(0.09 0.025 285);
-  --ring: oklch(0.69 0.18 292);
-  --gradient-sakura: linear-gradient(
-    135deg,
-    oklch(0.66 0.19 292),
-    oklch(0.46 0.16 270) 55%,
-    oklch(0.34 0.12 310)
-  );
-  --shadow-glow:
-    0 24px 70px -24px oklch(0.07 0.04 285 / 85%), 0 0 36px -20px oklch(0.55 0.2 290 / 32%);
+  --border: oklch(0.8 0.008 270 / 10%);
+  --input: oklch(0.125 0.005 270);
+  --ring: var(--primary);
+  --gradient-sakura: linear-gradient(135deg, var(--primary), var(--online));
+  --shadow-glow: 0 18px 60px -20px oklch(0.05 0 0 / 65%);
+  --scrim: oklch(0.07 0.008 270 / 78%);
+  --auth-overlay: linear-gradient(90deg, oklch(0.1 0.008 270 / 28%), oklch(0.1 0.008 270 / 76%) 50%, var(--rail) 80%);
 }
 
 @layer base {
@@ -84,16 +80,6 @@
   }
   body {
     background-color: var(--color-background);
-    background-image:
-      radial-gradient(ellipse at 8% 0%, oklch(0.28 0.13 292 / 20%), transparent 42rem),
-      radial-gradient(ellipse at 92% 100%, oklch(0.23 0.12 265 / 16%), transparent 46rem),
-      linear-gradient(
-        145deg,
-        oklch(0.115 0.04 290),
-        oklch(0.08 0.025 280) 52%,
-        oklch(0.12 0.045 300)
-      );
-    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
@@ -108,10 +94,10 @@
   background-image: var(--gradient-sakura);
 }
 @utility bg-app-gradient {
-  background-image:
-    radial-gradient(ellipse at 18% 0%, oklch(0.28 0.12 292 / 24%), transparent 38rem),
-    linear-gradient(145deg, oklch(0.13 0.045 290), oklch(0.085 0.025 280) 58%, oklch(0.14 0.05 300));
+  background-color: var(--background);
 }
+@utility bg-scrim { background-color: var(--scrim); }
+@utility auth-overlay { background-image: var(--auth-overlay); }
 @utility shadow-glow {
   box-shadow: var(--shadow-glow);
 }
@@ -152,4 +138,17 @@
 }
 @utility text-sakura {
   color: var(--primary);
+}
+
+@layer base {
+  html { color-scheme: dark; }
+  body { letter-spacing: 0; -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font: inherit; }
+  ::selection { color: var(--foreground); }
+}
+@media (max-width: 767px) {
+  .auth-overlay { background: var(--scrim); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

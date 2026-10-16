@@ -105,10 +105,10 @@ function bannerStyle(p: Profile): CSSProperties {
   if (p.banner_color) return { background: p.banner_color };
   if (p.theme_primary) {
     return {
-      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, #292632), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, #18171d))`,
+      background: `linear-gradient(120deg, color-mix(in srgb, ${p.theme_primary} 42%, var(--panel)), color-mix(in srgb, ${p.theme_accent || p.theme_primary} 24%, var(--rail)))`,
     };
   }
-  return { background: "linear-gradient(120deg, #302a3c, #1e1c26)" };
+  return { background: "var(--gradient-sakura)" };
 }
 
 /** Card de perfil estilo Discord (popout). */
@@ -123,32 +123,32 @@ export function ProfileCard({
 }) {
   const hasDisplayName = !!p.display_name?.trim();
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#191324] shadow-2xl shadow-black/40">
+    <div className="w-full overflow-hidden rounded-lg border border-border bg-popover shadow-2xl shadow-glow">
       <div className="relative overflow-hidden">
         <div className="h-[118px] w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-scrim/5 via-transparent to-scrim/25" />
       </div>
       <div className="px-4 pb-4">
-        <div className="-mt-10 mb-3 flex items-end justify-between">
-          <div className="rounded-full bg-[#191324] p-1.5 shadow-lg shadow-black/30">
-            <Avatar p={p} size={76} status={status} ring="border-[#191324]" />
+        <div className="relative -mt-10 mb-3 flex items-end justify-between">
+          <div className="rounded-full bg-popover p-1.5 shadow-lg shadow-glow">
+            <Avatar p={p} size={76} status={status} ring="border-popover" />
           </div>
         </div>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-sans text-xl font-bold leading-tight tracking-tight text-white">
+            <h3 className="break-words font-sans text-xl font-bold leading-tight text-foreground">
               {nameOf(p)}
             </h3>
-            <p className="mt-0.5 truncate text-sm text-white/55">
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">
               @{p.username}
-              {p.pronouns && <span className="text-white/40"> · {p.pronouns}</span>}
+              {p.pronouns && <span className="text-muted-foreground"> · {p.pronouns}</span>}
             </p>
           </div>
           {p.theme_primary && (
             <span
-              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white/[0.06]"
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-border"
               style={{ background: p.theme_primary }}
               aria-label="Tema personalizado"
               title="Tema personalizado"
@@ -156,29 +156,29 @@ export function ProfileCard({
           )}
         </div>
         {p.custom_status && (
-          <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.035] px-3 py-2.5">
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+          <div className="mt-4 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
               {p.custom_status}
             </p>
           </div>
         )}
-        {(p.bio || p.created_at) && <div className="my-4 h-px bg-white/[0.08]" />}
+        {(p.bio || p.created_at) && <div className="my-4 h-px bg-border" />}
         {p.bio && (
           <section className="mb-4">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Sobre mim
             </p>
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white/85">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
               {p.bio}
             </p>
           </section>
         )}
         {p.created_at && (
           <section>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-white/45">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Membro desde
             </p>
-            <p className="text-sm text-white/80">
+            <p className="text-sm text-foreground/90">
               {new Date(p.created_at).toLocaleDateString("pt-BR", {
                 day: "2-digit",
                 month: "short",
@@ -238,16 +238,18 @@ function ColorField({
     <div>
       <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">{label}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => onChange(null)}
           className={`h-9 w-9 rounded-md border bg-panel text-xs text-muted-foreground ${!value ? "ring-2 ring-ring" : ""}`}
           title="Padrão"
         >
           —
-        </button>
+        </Button>
         {SWATCHES.map((c) => (
-          <button
+          <Button
+            variant="ghost"
             key={c}
             type="button"
             onClick={() => onChange(c)}
