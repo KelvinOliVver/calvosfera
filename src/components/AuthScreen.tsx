@@ -58,9 +58,23 @@ export function AuthScreen() {
             Calvosfera<span className="text-secondary">.</span>
           </h1>
           <p className="mt-5 max-w-sm text-lg leading-relaxed text-foreground/85">
-            O próximo episódio é com a gente.
+            A sua casa no universo da Calvosfera. Canais de texto, calls de voz e perfis com GIF.
           </p>
-          <div className="mt-8 h-1 w-12 bg-primary" />
+          <div className="mt-8 grid max-w-md grid-cols-3 gap-3">
+            {[
+              ["Texto", "chat ao vivo"],
+              ["Voz", "salas de call"],
+              ["Perfis", "estilo & vibe"],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 backdrop-blur-sm"
+              >
+                <p className="text-[10px] uppercase tracking-wider text-white/50">{label}</p>
+                <p className="mt-1 text-xs font-medium text-white/90">{value}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="mx-auto w-full max-w-[420px] rounded-3xl border border-white/10 bg-rail/75 p-7 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-9 md:ml-auto md:mr-0">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">

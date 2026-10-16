@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -5,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -35,42 +36,46 @@
   --color-online: var(--online);
   --color-idle: var(--idle);
   --color-dnd: var(--dnd);
+  --color-scrim: var(--scrim);
   --color-mention: var(--mention);
   --color-mention-bar: var(--mention-bar);
   --color-ring-offset-background: var(--background);
 }
 
 :root {
-  --radius: 0.5rem;
-  --background: oklch(0.17 0.006 270);
-  --foreground: oklch(0.94 0.004 270);
-  --rail: oklch(0.125 0.005 270);
-  --panel: oklch(0.205 0.008 270);
-  --card: oklch(0.235 0.009 270);
-  --card-foreground: var(--foreground);
-  --popover: oklch(0.205 0.008 270);
-  --popover-foreground: var(--foreground);
-  --primary: oklch(0.81 0.12 172);
-  --primary-foreground: oklch(0.18 0.025 172);
-  --secondary: oklch(0.76 0.14 350);
-  --secondary-foreground: oklch(0.18 0.025 350);
-  --muted: oklch(0.255 0.008 270);
-  --muted-foreground: oklch(0.68 0.012 270);
-  --accent: oklch(0.29 0.009 270);
-  --accent-foreground: var(--foreground);
-  --destructive: oklch(0.7 0.19 25);
+  --radius: 1rem;
+  --background: oklch(0.1 0.012 280);
+  --foreground: oklch(0.97 0.008 330);
+  --rail: oklch(0.14 0.012 280);
+  --panel: oklch(0.16 0.011 280 / 85%);
+  --card: oklch(0.19 0.014 280 / 86%);
+  --card-foreground: oklch(0.96 0.02 330);
+  --popover: oklch(0.15 0.05 290 / 92%);
+  --popover-foreground: oklch(0.96 0.02 330);
+  --primary: oklch(0.76 0.16 348);
+  --primary-foreground: oklch(0.16 0.04 285);
+  --secondary: oklch(0.79 0.14 218);
+  --secondary-foreground: oklch(0.14 0.04 285);
+  --muted: oklch(0.27 0.012 280);
+  --muted-foreground: oklch(0.72 0.018 280);
+  --accent: oklch(0.28 0.016 280);
+  --accent-foreground: oklch(0.96 0.02 330);
+  --destructive: oklch(0.68 0.23 24);
   --destructive-foreground: oklch(0.98 0 0);
-  --online: oklch(0.77 0.15 155);
-  --idle: oklch(0.8 0.15 80);
-  --dnd: var(--destructive);
+  --online: oklch(0.74 0.18 157);
+  --idle: oklch(0.84 0.14 84);
+  --dnd: oklch(0.67 0.22 26);
   --mention: oklch(0.8 0.15 80 / 10%);
   --mention-bar: oklch(0.8 0.15 80);
-  --border: oklch(0.8 0.008 270 / 10%);
-  --input: oklch(0.125 0.005 270);
-  --ring: var(--primary);
-  --gradient-sakura: linear-gradient(135deg, var(--primary), var(--online));
-  --shadow-glow: 0 8px 24px -18px oklch(0.05 0 0 / 55%);
-  --scrim: oklch(0.07 0.008 270 / 78%);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.78 0.2 350);
+  --gradient-sakura: linear-gradient(135deg, oklch(0.78 0.18 348), oklch(0.88 0.12 214));
+  --gradient-aurora:
+    radial-gradient(circle at top left, oklch(0.74 0.18 348 / 0.42), transparent 36%),
+    radial-gradient(circle at bottom right, oklch(0.7 0.18 214 / 0.38), transparent 34%);
+  --shadow-glow: 0 24px 70px -28px oklch(0.08 0.04 280 / 75%);
+  --scrim: oklch(0.07 0.008 280 / 78%);
   --auth-overlay: linear-gradient(
     90deg,
     oklch(0.1 0.008 270 / 28%),
@@ -81,18 +86,59 @@
 
 @layer base {
   * {
+    box-sizing: border-box;
     border-color: var(--color-border);
   }
+  html {
+    color-scheme: dark;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
+    min-height: 100vh;
     background-color: var(--color-background);
+    background-image:
+      var(--gradient-aurora), linear-gradient(180deg, oklch(0.08 0.018 280), oklch(0.11 0.015 280));
     color: var(--color-foreground);
     font-family: var(--font-sans);
     min-width: 320px;
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root {
+    min-height: 100vh;
   }
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     font-family: var(--font-display);
+  }
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .app-shell {
+    background: linear-gradient(180deg, rgba(19, 17, 28, 0.98), rgba(16, 17, 24, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .glass-panel {
+    background: linear-gradient(180deg, rgba(24, 23, 35, 0.82), rgba(17, 18, 28, 0.72));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-glow);
+    backdrop-filter: blur(18px);
+  }
+
+  .soft-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 }
 
@@ -111,11 +157,6 @@
 @utility shadow-glow {
   box-shadow: var(--shadow-glow);
 }
-@utility glass-panel {
-  background-color: color-mix(in oklab, var(--panel) 96%, transparent);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-}
 @utility text-sakura {
   background-image: var(--gradient-sakura);
   -webkit-background-clip: text;
@@ -129,25 +170,22 @@
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in oklab, var(--primary) 40%, transparent);
+    background: color-mix(in oklab, var(--primary) 42%, transparent);
   }
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
   }
   ::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
+    background: linear-gradient(180deg, rgba(255, 155, 176, 0.8), rgba(118, 180, 255, 0.8));
     border-radius: 999px;
-    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+    border: 2px solid transparent;
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
-    background-clip: padding-box;
-  }
-}
-@utility text-sakura {
-  color: var(--primary);
 }
 
 @layer base {
@@ -155,7 +193,6 @@
     color-scheme: dark;
   }
   body {
-    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
   }
   button,
