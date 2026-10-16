@@ -32,81 +32,39 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="grid min-h-screen bg-[#171020] lg:grid-cols-[1.15fr_1fr]">
-      <div className="relative hidden overflow-hidden lg:block">
-        <img
-          src={bg}
-          alt="Cidade à noite com lua e cerejeiras"
-          width={1600}
-          height={912}
-          className="absolute inset-0 h-full w-full object-cover brightness-[0.62]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#211332]/45 via-transparent to-[#100b1b]/85" />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#171020] via-[#171020]/55 to-transparent p-12 pt-40">
-          <p className="font-display text-sm tracking-widest text-primary">カルボスフェラ</p>
-          <p className="mt-3 max-w-md font-sans text-3xl font-bold leading-tight text-white">
-            Seu lugar para conversar, jogar e estar junto.
-          </p>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
-            Canais de texto, chamadas de voz e perfis personalizados para sua comunidade.
-          </p>
+    <div className="relative isolate min-h-dvh overflow-hidden bg-rail">
+      <img src={bg} alt="Cidade anime sob a lua e cerejeiras" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+      <div className="auth-overlay absolute inset-0 -z-10" />
+      <header className="flex items-center gap-3 px-6 py-7 sm:px-12">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-xl font-extrabold text-primary-foreground">C</span>
+        <span className="text-lg font-extrabold">Calvosfera<span className="text-secondary">.</span></span>
+      </header>
+      <main className="mx-auto grid min-h-[calc(100dvh-100px)] max-w-7xl items-center gap-16 px-6 pb-14 md:grid-cols-2 sm:px-12">
+        <div className="hidden self-end pb-20 md:block">
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-primary">カルボスフェラ</p>
+          <h1 className="font-sans text-5xl font-extrabold leading-tight">Calvosfera<span className="text-secondary">.</span></h1>
+          <p className="mt-5 max-w-sm text-lg leading-relaxed text-foreground/85">O próximo episódio é com a gente.</p>
+          <div className="mt-8 h-1 w-12 bg-primary" />
         </div>
-      </div>
-      <div className="flex items-center justify-center bg-gradient-to-br from-[#160d22] via-[#0c0812] to-[#1b1027] px-6 py-12">
-        <div className="w-full max-w-[440px] rounded-2xl border border-white/[0.08] bg-[#1c1428]/95 p-7 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-10">
-          <div className="mb-6 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sakura font-display text-sm text-white shadow-lg shadow-primary/20">
-            C
-          </div>
-          <div className="mb-7">
-            <h1 className="font-sans text-2xl font-bold tracking-tight">Boas-vindas de volta!</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {mode === "in"
-                ? "Estamos muito felizes em ver você novamente!"
-                : "Crie sua conta para entrar na comunidade."}
-            </p>
-          </div>
+        <div className="mx-auto w-full max-w-[380px] md:ml-auto md:mr-0">
+          <span className="mb-6 block text-xs font-bold uppercase tracking-widest text-primary">Sua comunidade anime</span>
+          <h2 className="font-sans text-3xl font-extrabold">{mode === "in" ? "Bom te ver de novo." : "Seu lugar é aqui."}</h2>
+          <p className="mb-9 mt-3 text-sm leading-relaxed text-muted-foreground">{mode === "in" ? "A Calvosfera está te esperando." : "Escolha seu nick e venha fazer parte."}</p>
           <form onSubmit={submit} className="space-y-5">
             <Field label="Nick">
-              <Input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                maxLength={64}
-                autoComplete="username"
-                placeholder="ex: careca_supremo"
-                className="border-white/[0.07] bg-[#160f21] focus-visible:ring-primary/60"
-              />
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} required maxLength={64} autoComplete="username" placeholder="Seu nick" className="h-12 border-border bg-panel" />
             </Field>
             <Field label="Senha">
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === "in" ? "current-password" : "new-password"}
-                className="border-white/[0.07] bg-[#160f21] focus-visible:ring-primary/60"
-              />
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "in" ? "current-password" : "new-password"} placeholder="Sua senha" className="h-12 border-border bg-panel" />
             </Field>
-            <Button
-              type="submit"
-              disabled={busy}
-              className="mt-1 h-11 w-full font-bold shadow-md shadow-black/10"
-            >
-              {busy ? "Aguarde…" : mode === "in" ? "Entrar" : "Criar conta"}
-            </Button>
+            <Button type="submit" disabled={busy} className="mt-2 h-12 w-full font-bold">{busy ? "Aguarde…" : mode === "in" ? "Entrar na Calvosfera" : "Criar conta"}</Button>
           </form>
-          <p className="mt-7 text-center text-sm text-muted-foreground">
-            {mode === "in" ? "Ainda não tem conta? " : "Já tem conta? "}
-            <button
-              onClick={() => setMode(mode === "in" ? "up" : "in")}
-              className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
-            >
-              {mode === "in" ? "Criar conta" : "Entrar"}
-            </button>
-          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
+            <span>{mode === "in" ? "Ainda não tem conta?" : "Já faz parte?"}</span>
+            <Button variant="link" className="h-auto px-1 py-1 font-semibold" onClick={() => setMode(mode === "in" ? "up" : "in")}>{mode === "in" ? "Criar conta" : "Entrar"}</Button>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
