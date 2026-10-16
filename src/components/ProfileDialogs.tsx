@@ -9,8 +9,10 @@ import {
 import { toast } from "sonner";
 import {
   Activity,
+  CalendarDays,
   Camera,
   ChevronDown,
+  Copy,
   ExternalLink,
   Heart,
   ImagePlus,
@@ -239,28 +241,58 @@ export function ProfileCard({
   actions?: ReactNode;
 }) {
   const extras = profileExtras(p.profile_extras);
+  const presence = (status ?? p.status ?? "invisible") as Status;
+  async function copyHandle() {
+    try {
+      await navigator.clipboard.writeText(`@${p.username}`);
+      toast.success("Nome de usuário copiado.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o nome de usuário manualmente.");
+    }
+  }
+
   return (
-    <div className="profile-card w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-glow">
-      <div className="relative overflow-hidden">
-        <div className="h-[118px] w-full" style={bannerStyle(p)}>
+    <div
+      className="profile-card w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-glow"
+      style={{ "--profile-accent": p.theme_primary || "var(--primary)" } as CSSProperties}
+    >
+      <div className="profile-card-banner relative overflow-hidden">
+        <div className="h-36 w-full" style={bannerStyle(p)}>
           {p.banner_url && <img src={p.banner_url} alt="" className="h-full w-full object-cover" />}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-scrim/5 via-transparent to-scrim/25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-1 opacity-90"
+          style={{ background: "linear-gradient(90deg, var(--profile-accent), transparent 78%)" }}
+        />
+        <div className="absolute bottom-3 left-4 flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-sm">
+          <Sparkles className="h-3 w-3" /> PERFIL DA CALVOSFERA
+        </div>
       </div>
       <div className="px-4 pb-4">
-        <div className="relative -mt-10 mb-3 flex items-end justify-between">
-          <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
-            <Avatar p={p} size={76} status={status} ring="border-popover" />
+        <div className="relative -mt-11 mb-3 flex items-end justify-between">
+          <div className={`rounded-full ring-4 ring-popover ${avatarFrameClass(extras.avatar_frame)}`}>
+            <Avatar p={p} size={84} status={presence} ring="border-popover" />
+          </div>
+          <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-2.5 py-1 text-[11px] font-medium text-foreground/85">
+            <span className={`h-2 w-2 rounded-full ${dotClass(presence)}`} />
+            {STATUS_LABEL[presence] ?? STATUS_LABEL.invisible}
           </div>
         </div>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="break-words font-sans text-xl font-bold leading-tight text-foreground">
+            <h3 className="break-words font-display text-2xl font-bold leading-tight tracking-tight text-foreground">
               {nameOf(p)}
             </h3>
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">
-              @{p.username}
-              {p.pronouns && <span className="text-muted-foreground"> · {p.pronouns}</span>}
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+              <span className="break-all">@{p.username}</span>
+              {p.pronouns && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{p.pronouns}</span>
+                </>
+              )}
             </p>
           </div>
           {p.theme_primary && (
@@ -272,22 +304,34 @@ export function ProfileCard({
             />
           )}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void copyHandle()}
+          className="mt-3 h-8 gap-1.5 rounded-lg border-border bg-background/50 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Copy className="h-3.5 w-3.5" /> Copiar usuário
+        </Button>
         {extras.badge && (
-          <p className="mt-2 inline-flex rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-primary/10 px-2.5 py-1 text-xs font-semibold text-foreground">
+            <Sparkles className="h-3 w-3 text-primary" />
             {extras.badge}
           </p>
         )}
         {p.custom_status && (
-          <div className="mt-4 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+          <div className="mt-4 rounded-xl border border-border bg-background/50 px-3.5 py-3">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Status
+            </p>
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
               {p.custom_status}
             </p>
           </div>
         )}
-        {(p.bio || p.created_at) && <div className="my-4 h-px bg-border" />}
+        {(p.bio || p.created_at || extras.connections.length > 0 || extras.widgets.length > 0 || extras.wishlist.length > 0) && <div className="my-4 h-px bg-border" />}
         {p.bio && (
-          <section className="mb-4">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <section className="mb-4 rounded-xl border border-border/80 bg-background/35 p-3.5">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               Sobre mim
             </p>
             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
@@ -296,22 +340,25 @@ export function ProfileCard({
           </section>
         )}
         {p.created_at && (
-          <section>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              Membro desde
-            </p>
-            <p className="text-sm text-foreground/90">
-              {new Date(p.created_at).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </p>
+          <section className="flex items-center gap-2.5 rounded-lg px-1 py-1.5">
+            <CalendarDays className="h-4 w-4 shrink-0" style={{ color: "var(--profile-accent)" }} />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Na Calvosfera desde
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-foreground/90">
+                {new Date(p.created_at).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
           </section>
         )}
         {extras.connections.length > 0 && (
           <section className="mt-4">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               Conexões
             </p>
             <div className="flex flex-wrap gap-2">
@@ -390,7 +437,7 @@ export function ViewProfile({
 }) {
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-[340px] gap-0 overflow-y-auto border-0 bg-transparent p-0 shadow-glow [&>button]:hidden">
+      <DialogContent className="max-h-[90dvh] max-w-[380px] gap-0 overflow-y-auto border-0 bg-transparent p-0 shadow-glow [&>button]:right-3 [&>button]:top-3 [&>button]:z-20 [&>button]:rounded-full [&>button]:bg-black/45 [&>button]:p-2 [&>button]:text-white [&>button]:backdrop-blur-sm">
         <DialogTitle className="sr-only">Perfil de {p ? nameOf(p) : ""}</DialogTitle>
         {p && <ProfileCard p={p} status={status} actions={actions} />}
       </DialogContent>

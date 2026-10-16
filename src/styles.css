@@ -228,7 +228,7 @@ html[data-theme="amoled"] {
   .current-user { background: oklch(0.09 0.014 267 / 76%); }
   .auth-card { border-color: oklch(1 0 0 / 11%); background: linear-gradient(150deg, oklch(0.16 0.024 267 / 96%), oklch(0.11 0.018 267 / 98%)); }
   .auth-overlay { background-image: linear-gradient(90deg, oklch(0.07 0.015 267 / 8%), oklch(0.07 0.015 267 / 76%) 55%, oklch(0.08 0.016 267 / 96%)); }
-  .profile-card { background: linear-gradient(180deg, oklch(0.2 0.026 267), oklch(0.15 0.02 267)); }
+  .profile-card { background: linear-gradient(180deg, oklch(0.2 0.026 267), oklch(0.15 0.02 267)); border-color: color-mix(in srgb, var(--profile-accent, var(--primary)) 24%, var(--border)); }
   .app-loading { background: radial-gradient(ellipse at 50% 35%, oklch(0.23 0.04 280 / 30%), transparent 42%), var(--background); }
   .loading-track { background: oklch(1 0 0 / 8%); }
   .loading-progress { animation: loading-sweep 1.2s ease-in-out infinite alternate; }
