@@ -1319,7 +1319,7 @@ export function EditProfile({
               <div className="space-y-2">
                 <SideLabel>Efeitos de perfil e molduras</SideLabel>
                 <div className="flex items-center gap-2">
-                  <div className="relative h-[82px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
+                  <div className="relative h-[120px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
                     <img
                       src={draft.banner_url || cityBanner}
                       alt=""
@@ -1331,12 +1331,15 @@ export function EditProfile({
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[82px] flex-1 flex-col justify-center gap-1 rounded-xl border border-border bg-card p-2">
+                  <div className="flex max-h-[120px] flex-1 flex-col gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2">
                     {(
                       [
                         ["none", "Padrão"],
                         ["sakura", "Sakura"],
                         ["gold", "Dourada"],
+                        ["neon", "Neon"],
+                        ["crystal", "Cristal"],
+                        ["flame", "Chamas"],
                       ] as const
                     ).map(([frame, label]) => (
                       <button
@@ -1353,6 +1356,45 @@ export function EditProfile({
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <SideLabel>Estilo do nome</SideLabel>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Como seu nome aparece no perfil. Usa as cores do tema acima.
+                </p>
+                <div
+                  className="rounded-xl border border-border bg-panel px-3 py-4 text-center"
+                  style={{
+                    "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                    "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                  } as CSSProperties}
+                >
+                  <span className={`${nameClass(extras)} text-2xl font-bold`}>{nameOf(draft)}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["gradient", "Degradê"],
+                    ["solid", "Sólido"],
+                    ["neon", "Neon"],
+                    ["shine", "Brilho"],
+                    ["outline", "Contorno"],
+                  ] as const).map(([style, label]) => (
+                    <button key={style} type="button" aria-pressed={extras.name_style === style} onClick={() => setExtras({ name_style: style })} className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition ${extras.name_style === style ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
+                </div>
+                <SideLabel>Fonte do nome</SideLabel>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["default", "Padrão"],
+                    ["display", "Título"],
+                    ["rounded", "Redonda"],
+                    ["mono", "Pixel"],
+                    ["serif", "Elegante"],
+                  ] as const).map(([font, label]) => (
+                    <button key={font} type="button" aria-pressed={extras.name_font === font} onClick={() => setExtras({ name_font: font })} className={`name-font-${font} rounded-lg border px-2 py-1.5 text-sm transition ${extras.name_font === font ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
                 </div>
               </div>
 
