@@ -463,3 +463,11 @@ html[data-theme="amoled"] .server-rail { background: #000; }
   background: linear-gradient(0deg, oklch(0.6 0.22 30), oklch(0.75 0.19 60), oklch(0.88 0.15 90));
   box-shadow: 0 -4px 16px oklch(0.7 0.2 45 / 0.7);
 }
+
+/* Perfil com degradê do tema (estilo Discord Nitro) */
+.profile-card-themed {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--profile-accent) 28%, var(--popover)) 0%, var(--popover) 45%, color-mix(in oklab, var(--profile-secondary) 26%, var(--popover)) 100%);
+  border-color: color-mix(in oklab, var(--profile-accent) 45%, var(--border));
+  box-shadow: 0 20px 40px -18px color-mix(in oklab, var(--profile-accent) 55%, transparent);
+}
