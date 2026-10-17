@@ -335,7 +335,7 @@ export function ProfileCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3
-              className={`${nameClass(extras)} break-words font-display text-2xl  font-bold leading-tight tracking-tight"
+              className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
               style={
                 {
                   "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -559,7 +559,7 @@ export function ViewProfile({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2
-                      className={`${nameClass(extras)} break-words font-display text-2xl  font-bold leading-tight tracking-tight"
+                      className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
                       style={
                         {
                           "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -1557,7 +1557,7 @@ export function EditProfile({
               {tab === "profile" ? (
                 <>
                   <h1
-                    className={`${nameClass(extras)} font-sans text-2xl  font-bold tracking-tight"
+                    className={`${nameClass(extras)} text-2xl font-bold tracking-tight`}
                     style={
                       {
                         "--profile-name-start": draft.theme_primary || "var(--foreground)",
