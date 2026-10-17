@@ -290,7 +290,7 @@ export function ProfileCard({
 
   return (
     <div
-      className="profile-card w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/20"
+      className="profile-card profile-card-themed w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/20"
       style={
         {
           "--profile-accent": p.theme_primary || "var(--primary)",
@@ -813,7 +813,19 @@ const PROFILE_PALETTES = [
   { name: "Aurora", primary: "#54d6b4", accent: "#5865f2", banner: "#152d35" },
   { name: "Pôr do sol", primary: "#ffad73", accent: "#ed5b86", banner: "#382323" },
   { name: "Noite", primary: "#a991ff", accent: "#55c9d8", banner: "#211d3d" },
+  { name: "Oceano", primary: "#38bdf8", accent: "#1e40af", banner: "#0c1e3a" },
+  { name: "Floresta", primary: "#4ade80", accent: "#166534", banner: "#0f2a1a" },
+  { name: "Lava", primary: "#f97316", accent: "#b91c1c", banner: "#2e120c" },
+  { name: "Algodão", primary: "#f9a8d4", accent: "#93c5fd", banner: "#2b2440" },
+  { name: "Neon", primary: "#22d3ee", accent: "#e879f9", banner: "#1a1033" },
+  { name: "Dourado", primary: "#facc15", accent: "#b45309", banner: "#2d230c" },
+  { name: "Vampiro", primary: "#e11d48", accent: "#3b0764", banner: "#1f0a14" },
+  { name: "Gelo", primary: "#e0f2fe", accent: "#7dd3fc", banner: "#1b2a38" },
 ];
+
+function randomHex() {
+  return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0")}`;
+}
 
 function ColorField({
   label,
@@ -1281,7 +1293,7 @@ export function EditProfile({
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
                     Paletas rápidas
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {PROFILE_PALETTES.map((palette) => (
                       <button
                         key={palette.name}
@@ -1299,20 +1311,27 @@ export function EditProfile({
                         }
                         className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition hover:bg-accent ${draft.theme_primary === palette.primary && draft.theme_accent === palette.accent ? "border-primary/60 bg-primary/10 text-foreground" : "border-border bg-panel text-muted-foreground"}`}
                       >
-                        <span className="flex -space-x-1.5">
-                          <span
-                            className="h-4 w-4 rounded-full border border-black/30"
-                            style={{ background: palette.primary }}
-                          />
-                          <span
-                            className="h-4 w-4 rounded-full border border-black/30"
-                            style={{ background: palette.accent }}
-                          />
-                        </span>
+                        <span
+                          className="h-6 w-10 shrink-0 rounded-md border border-border shadow-inner"
+                          style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})` }}
+                        />
                         <span className="truncate group-hover:text-white">{palette.name}</span>
                       </button>
                     ))}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const primary = randomHex();
+                      const accent = randomHex();
+                      set({ theme_primary: primary, theme_accent: accent, banner_color: primary });
+                    }}
+                  >
+                    Degradê aleatório
+                  </Button>
                 </div>
               </div>
 
