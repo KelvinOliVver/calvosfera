@@ -115,7 +115,7 @@ export function CommunityHub({
       return;
     }
     const { error } = await supabase.from("community_polls").insert({ author_id: userId, question: question.trim(), options: cleanOptions });
-    if (error) return toast.error(`Não foi possível criar a enquete: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível criar a enquete: ${error.message}`);
     setQuestion(""); setOptions(["", ""]); toast.success("Enquete publicada."); await refresh();
   }
 
@@ -124,14 +124,14 @@ export function CommunityHub({
     const result = existing
       ? await supabase.from("community_poll_votes").update({ option_index: optionIndex }).eq("poll_id", poll.id).eq("user_id", userId)
       : await supabase.from("community_poll_votes").insert({ poll_id: poll.id, user_id: userId, option_index: optionIndex });
-    if (result.error) return toast.error(`Não foi possível registrar o voto: ${result.error.message}`);
+    if (result.error) return void toast.error(`Não foi possível registrar o voto: ${result.error.message}`);
     await refresh();
   }
 
   async function createSuggestion() {
-    if (ideaTitle.trim().length < 5 || ideaBody.trim().length < 1) return toast.error("Escreva um título e explique a sugestão.");
+    if (ideaTitle.trim().length < 5 || ideaBody.trim().length < 1) return void toast.error("Escreva um título e explique a sugestão.");
     const { error } = await supabase.from("community_suggestions").insert({ author_id: userId, title: ideaTitle.trim(), description: ideaBody.trim() });
-    if (error) return toast.error(`Não foi possível enviar: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível enviar: ${error.message}`);
     setIdeaTitle(""); setIdeaBody(""); toast.success("Sugestão enviada à comunidade."); await refresh();
   }
 
@@ -140,29 +140,29 @@ export function CommunityHub({
     const result = existing
       ? await supabase.from("community_suggestion_votes").delete().eq("suggestion_id", idea.id).eq("user_id", userId)
       : await supabase.from("community_suggestion_votes").insert({ suggestion_id: idea.id, user_id: userId });
-    if (result.error) return toast.error(`Não foi possível votar: ${result.error.message}`);
+    if (result.error) return void toast.error(`Não foi possível votar: ${result.error.message}`);
     await refresh();
   }
 
   async function changeIdeaStatus(idea: Suggestion, status: string) {
     const { error } = await supabase.from("community_suggestions").update({ status, updated_at: new Date().toISOString() }).eq("id", idea.id);
-    if (error) return toast.error(`Não foi possível atualizar: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível atualizar: ${error.message}`);
     await refresh();
   }
 
   async function submitReport() {
-    if ((!reportTarget && !reportMessage) || (reportTarget && reportMessage) || reportReason.trim().length < 5) return toast.error("Escolha uma pessoa ou mensagem e descreva o motivo (mínimo de 5 caracteres).");
+    if ((!reportTarget && !reportMessage) || (reportTarget && reportMessage) || reportReason.trim().length < 5) return void toast.error("Escolha uma pessoa ou mensagem e descreva o motivo (mínimo de 5 caracteres).");
     const { error } = await supabase.from("community_reports").insert({ reporter_id: userId, target_user_id: reportTarget || null, target_message_id: reportMessage || null, reason: reportReason.trim() });
-    if (error) return toast.error(`Não foi possível enviar a denúncia: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível enviar a denúncia: ${error.message}`);
     setReportTarget(""); setReportReason(""); toast.success("Denúncia enviada para análise da moderação."); await refresh();
   }
 
   async function createEvent() {
-    if (eventTitle.trim().length < 5 || !eventDescription.trim() || !eventStartsAt) return toast.error("Preencha título, descrição e data do evento.");
+    if (eventTitle.trim().length < 5 || !eventDescription.trim() || !eventStartsAt) return void toast.error("Preencha título, descrição e data do evento.");
     const startsAt = new Date(eventStartsAt);
-    if (Number.isNaN(startsAt.getTime()) || startsAt <= new Date()) return toast.error("Escolha uma data futura.");
+    if (Number.isNaN(startsAt.getTime()) || startsAt <= new Date()) return void toast.error("Escolha uma data futura.");
     const { error } = await supabase.from("community_events").insert({ author_id: userId, title: eventTitle.trim(), description: eventDescription.trim(), starts_at: startsAt.toISOString(), location: eventLocation.trim() || null });
-    if (error) return toast.error(`Não foi possível criar o evento: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível criar o evento: ${error.message}`);
     setEventTitle(""); setEventDescription(""); setEventStartsAt(""); setEventLocation(""); toast.success("Evento publicado."); await refresh();
   }
 
@@ -171,14 +171,14 @@ export function CommunityHub({
     const result = attending
       ? await supabase.from("community_event_rsvps").delete().eq("event_id", event.id).eq("user_id", userId)
       : await supabase.from("community_event_rsvps").insert({ event_id: event.id, user_id: userId });
-    if (result.error) return toast.error(`Não foi possível atualizar presença: ${result.error.message}`);
+    if (result.error) return void toast.error(`Não foi possível atualizar presença: ${result.error.message}`);
     await refresh();
   }
 
   async function cancelEvent(event: CommunityEvent) {
     if (!window.confirm(`Cancelar o evento “${event.title}”?`)) return;
     const { error } = await supabase.from("community_events").update({ status: "cancelled" }).eq("id", event.id);
-    if (error) return toast.error(`Não foi possível cancelar: ${error.message}`);
+    if (error) return void toast.error(`Não foi possível cancelar: ${error.message}`);
     await refresh();
   }
 

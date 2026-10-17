@@ -99,12 +99,12 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     const root = document.documentElement;
-    root.dataset.theme = preferences.theme;
-    root.dataset.density = preferences.density;
-    root.dataset.chatSize = preferences.textSize;
-    root.dataset.showAvatars = String(preferences.showAvatars);
-    root.dataset.showTimestamps = String(preferences.showTimestamps);
-    root.dataset.reduceMotion = String(preferences.reduceMotion);
+    root.dataset["theme"] = preferences.theme;
+    root.dataset["density"] = preferences.density;
+    root.dataset["chatSize"] = preferences.textSize;
+    root.dataset["showAvatars"] = String(preferences.showAvatars);
+    root.dataset["showTimestamps"] = String(preferences.showTimestamps);
+    root.dataset["reduceMotion"] = String(preferences.reduceMotion);
     root.style.setProperty("--primary", preferences.accent);
     root.style.setProperty("--ring", preferences.accent);
     root.style.setProperty("--primary-foreground", contrastingText(preferences.accent));

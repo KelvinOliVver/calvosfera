@@ -424,3 +424,50 @@ html[data-theme="amoled"] .server-rail { background: #000; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Estilos de nome do perfil (escolhidos pelo usuário) */
+.profile-name-solid { color: var(--profile-name-start); }
+.profile-name-neon {
+  color: var(--profile-name-start);
+  text-shadow: 0 0 6px var(--profile-name-start), 0 0 18px var(--profile-name-end);
+}
+.profile-name-shine {
+  background-image: linear-gradient(100deg, var(--profile-name-start) 20%, var(--foreground) 50%, var(--profile-name-end) 80%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: name-shine 3.5s linear infinite;
+}
+@keyframes name-shine { to { background-position: -200% center; } }
+.profile-name-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--profile-name-start);
+}
+.name-font-default { font-family: var(--font-sans); }
+.name-font-display { font-family: var(--font-display); }
+.name-font-rounded { font-family: "Fredoka", var(--font-sans); }
+.name-font-mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+.name-font-serif { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { .profile-name-shine { animation: none; } }
+
+.avatar-frame-neon {
+  background: conic-gradient(from 0deg, var(--primary), var(--secondary), var(--primary));
+  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.avatar-frame-crystal {
+  background: linear-gradient(135deg, oklch(0.95 0.04 220), oklch(0.75 0.12 240), oklch(0.92 0.05 300));
+  box-shadow: 0 0 10px oklch(0.8 0.1 230 / 0.6);
+}
+.avatar-frame-flame {
+  background: linear-gradient(0deg, oklch(0.6 0.22 30), oklch(0.75 0.19 60), oklch(0.88 0.15 90));
+  box-shadow: 0 -4px 16px oklch(0.7 0.2 45 / 0.7);
+}
+
+/* Perfil com degradê do tema (estilo Discord Nitro) */
+.profile-card-themed {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--profile-accent) 28%, var(--popover)) 0%, var(--popover) 45%, color-mix(in oklab, var(--profile-secondary) 26%, var(--popover)) 100%);
+  border-color: color-mix(in oklab, var(--profile-accent) 45%, var(--border));
+  box-shadow: 0 20px 40px -18px color-mix(in oklab, var(--profile-accent) 55%, transparent);
+}

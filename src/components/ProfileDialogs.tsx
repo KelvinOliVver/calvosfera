@@ -81,12 +81,18 @@ export function writeProfileExtrasCache(userId: string, value: Json) {
 
 type ProfileConnection = { id: string; label: string; url: string };
 type ProfileWidget = { id: string; title: string; description: string; url: string };
-type AvatarFrame = "none" | "sakura" | "gold";
+type AvatarFrame = "none" | "sakura" | "gold" | "neon" | "crystal" | "flame";
+type NameStyle = "gradient" | "solid" | "neon" | "shine" | "outline";
+type NameFont = "default" | "display" | "rounded" | "mono" | "serif";
+const NAME_STYLES = ["gradient", "solid", "neon", "shine", "outline"] as const;
+const NAME_FONTS = ["default", "display", "rounded", "mono", "serif"] as const;
 type ProfileEffect = "none" | "aurora" | "sakura" | "holographic" | "ember";
 type ProfileExtras = {
   badge: string;
   avatar_frame: AvatarFrame;
   profile_effect: ProfileEffect;
+  name_style: NameStyle;
+  name_font: NameFont;
   connections: ProfileConnection[];
   widgets: ProfileWidget[];
   wishlist: string[];
@@ -140,8 +146,8 @@ function profileExtras(value: Json | undefined): ProfileExtras {
   return {
     badge: typeof data["badge"] === "string" ? data["badge"] : "",
     avatar_frame:
-      data["avatar_frame"] === "sakura" || data["avatar_frame"] === "gold"
-        ? data["avatar_frame"]
+      ["sakura", "gold", "neon", "crystal", "flame"].includes(String(data["avatar_frame"]))
+        ? (data["avatar_frame"] as AvatarFrame)
         : "none",
     profile_effect:
       data["profile_effect"] === "aurora" ||
@@ -150,6 +156,8 @@ function profileExtras(value: Json | undefined): ProfileExtras {
       data["profile_effect"] === "ember"
         ? data["profile_effect"]
         : "none",
+    name_style: NAME_STYLES.includes(data["name_style"] as NameStyle) ? (data["name_style"] as NameStyle) : "gradient",
+    name_font: NAME_FONTS.includes(data["name_font"] as NameFont) ? (data["name_font"] as NameFont) : "default",
     connections,
     widgets,
     wishlist,
@@ -161,7 +169,14 @@ function avatarFrameClass(frame: AvatarFrame) {
     return "bg-gradient-to-br from-pink-200 via-fuchsia-500 to-pink-300 p-1.5";
   if (frame === "gold")
     return "bg-gradient-to-br from-yellow-100 via-amber-500 to-yellow-200 p-1.5";
+  if (frame === "neon") return "avatar-frame-neon p-1.5";
+  if (frame === "crystal") return "avatar-frame-crystal p-1.5";
+  if (frame === "flame") return "avatar-frame-flame p-1.5";
   return "bg-popover p-1.5";
+}
+
+function nameClass(extras: ProfileExtras) {
+  return `profile-name-${extras.name_style} name-font-${extras.name_font}`;
 }
 
 function safeExternalUrl(value: string) {
@@ -275,7 +290,7 @@ export function ProfileCard({
 
   return (
     <div
-      className="profile-card w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/20"
+      className="profile-card profile-card-themed w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/20"
       style={
         {
           "--profile-accent": p.theme_primary || "var(--primary)",
@@ -320,7 +335,7 @@ export function ProfileCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3
-              className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+              className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
               style={
                 {
                   "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -544,7 +559,7 @@ export function ViewProfile({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2
-                      className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+                      className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
                       style={
                         {
                           "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -798,7 +813,19 @@ const PROFILE_PALETTES = [
   { name: "Aurora", primary: "#54d6b4", accent: "#5865f2", banner: "#152d35" },
   { name: "Pôr do sol", primary: "#ffad73", accent: "#ed5b86", banner: "#382323" },
   { name: "Noite", primary: "#a991ff", accent: "#55c9d8", banner: "#211d3d" },
+  { name: "Oceano", primary: "#38bdf8", accent: "#1e40af", banner: "#0c1e3a" },
+  { name: "Floresta", primary: "#4ade80", accent: "#166534", banner: "#0f2a1a" },
+  { name: "Lava", primary: "#f97316", accent: "#b91c1c", banner: "#2e120c" },
+  { name: "Algodão", primary: "#f9a8d4", accent: "#93c5fd", banner: "#2b2440" },
+  { name: "Neon", primary: "#22d3ee", accent: "#e879f9", banner: "#1a1033" },
+  { name: "Dourado", primary: "#facc15", accent: "#b45309", banner: "#2d230c" },
+  { name: "Vampiro", primary: "#e11d48", accent: "#3b0764", banner: "#1f0a14" },
+  { name: "Gelo", primary: "#e0f2fe", accent: "#7dd3fc", banner: "#1b2a38" },
 ];
+
+function randomHex() {
+  return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0")}`;
+}
 
 function ColorField({
   label,
@@ -1056,7 +1083,7 @@ export function EditProfile({
 
       const { error: extrasError } = await supabase
         .from("profiles")
-        .update({ profile_extras: extrasToSave })
+        .update({ profile_extras: extrasToSave } as never)
         .eq("id", me.id);
       const savedProfile = { ...draft, profile_extras: extrasToSave };
       setSavedDraft(savedProfile);
@@ -1124,7 +1151,7 @@ export function EditProfile({
                 <button
                   key={sectionId}
                   type="button"
-                  onClick={() => jumpToSection(sectionId)}
+                  onClick={() => jumpToSection(sectionId ?? "")}
                   aria-current={activeEditorSection === sectionId ? "location" : undefined}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeEditorSection === sectionId ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                 >
@@ -1266,7 +1293,7 @@ export function EditProfile({
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
                     Paletas rápidas
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {PROFILE_PALETTES.map((palette) => (
                       <button
                         key={palette.name}
@@ -1284,27 +1311,34 @@ export function EditProfile({
                         }
                         className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition hover:bg-accent ${draft.theme_primary === palette.primary && draft.theme_accent === palette.accent ? "border-primary/60 bg-primary/10 text-foreground" : "border-border bg-panel text-muted-foreground"}`}
                       >
-                        <span className="flex -space-x-1.5">
-                          <span
-                            className="h-4 w-4 rounded-full border border-black/30"
-                            style={{ background: palette.primary }}
-                          />
-                          <span
-                            className="h-4 w-4 rounded-full border border-black/30"
-                            style={{ background: palette.accent }}
-                          />
-                        </span>
+                        <span
+                          className="h-6 w-10 shrink-0 rounded-md border border-border shadow-inner"
+                          style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})` }}
+                        />
                         <span className="truncate group-hover:text-white">{palette.name}</span>
                       </button>
                     ))}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const primary = randomHex();
+                      const accent = randomHex();
+                      set({ theme_primary: primary, theme_accent: accent, banner_color: primary });
+                    }}
+                  >
+                    Degradê aleatório
+                  </Button>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <SideLabel>Efeitos de perfil e molduras</SideLabel>
                 <div className="flex items-center gap-2">
-                  <div className="relative h-[82px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
+                  <div className="relative h-[120px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
                     <img
                       src={draft.banner_url || cityBanner}
                       alt=""
@@ -1316,12 +1350,15 @@ export function EditProfile({
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[82px] flex-1 flex-col justify-center gap-1 rounded-xl border border-border bg-card p-2">
+                  <div className="flex max-h-[120px] flex-1 flex-col gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2">
                     {(
                       [
                         ["none", "Padrão"],
                         ["sakura", "Sakura"],
                         ["gold", "Dourada"],
+                        ["neon", "Neon"],
+                        ["crystal", "Cristal"],
+                        ["flame", "Chamas"],
                       ] as const
                     ).map(([frame, label]) => (
                       <button
@@ -1338,6 +1375,45 @@ export function EditProfile({
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <SideLabel>Estilo do nome</SideLabel>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Como seu nome aparece no perfil. Usa as cores do tema acima.
+                </p>
+                <div
+                  className="rounded-xl border border-border bg-panel px-3 py-4 text-center"
+                  style={{
+                    "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                    "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                  } as CSSProperties}
+                >
+                  <span className={`${nameClass(extras)} text-2xl font-bold`}>{nameOf(draft)}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["gradient", "Degradê"],
+                    ["solid", "Sólido"],
+                    ["neon", "Neon"],
+                    ["shine", "Brilho"],
+                    ["outline", "Contorno"],
+                  ] as const).map(([style, label]) => (
+                    <button key={style} type="button" aria-pressed={extras.name_style === style} onClick={() => setExtras({ name_style: style })} className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition ${extras.name_style === style ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
+                </div>
+                <SideLabel>Fonte do nome</SideLabel>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["default", "Padrão"],
+                    ["display", "Título"],
+                    ["rounded", "Redonda"],
+                    ["mono", "Pixel"],
+                    ["serif", "Elegante"],
+                  ] as const).map(([font, label]) => (
+                    <button key={font} type="button" aria-pressed={extras.name_font === font} onClick={() => setExtras({ name_font: font })} className={`name-font-${font} rounded-lg border px-2 py-1.5 text-sm transition ${extras.name_font === font ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
                 </div>
               </div>
 
@@ -1542,7 +1618,7 @@ export function EditProfile({
               {tab === "profile" ? (
                 <>
                   <h1
-                    className="profile-name-gradient font-sans text-2xl font-bold tracking-tight"
+                    className={`${nameClass(extras)} text-2xl font-bold tracking-tight`}
                     style={
                       {
                         "--profile-name-start": draft.theme_primary || "var(--foreground)",
