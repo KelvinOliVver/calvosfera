@@ -31,6 +31,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables / credentials
-.env*
-!.env.example
