@@ -1009,9 +1009,23 @@ export function ChatApp({ userId }: { userId: string }) {
                           className="flex items-center gap-2 rounded px-1 py-1 text-xs text-muted-foreground"
                         >
                           <Avatar p={profiles[id]} size={20} />
-                          <span className="truncate">{nameOf(profiles[id])}</span>
+                          <span className="min-w-0 flex-1 truncate">{nameOf(profiles[id])}</span>
+                          {id !== userId && (() => {
+                            const state = voice.connectionStates[id];
+                            const connected = state === "connected";
+                            const failed = state === "failed" || state === "disconnected";
+                            return (
+                              <span className="flex shrink-0 items-center gap-1 text-[10px]">
+                                <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-online" : failed ? "bg-destructive" : "bg-primary"}`} />
+                                {connected ? "Conectado" : failed ? "Reconectando" : "Conectando"}
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
+                      {voice.peers.length === 0 && (
+                        <p className="px-1 py-1 text-[10px] text-muted-foreground">Aguardando outras pessoas</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1022,11 +1036,16 @@ export function ChatApp({ userId }: { userId: string }) {
           <div className="mx-2 mb-2 rounded-xl border border-online/20 bg-online/[0.07] p-3 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-online" />
-              <p className="text-xs font-bold text-online">Conectado à voz</p>
+              <p className="text-xs font-bold text-online">Chamada ativa</p>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-sm font-medium">{voiceCh.name}</span>
               <div className="flex gap-1">
+                {voice.audioBlocked && (
+                  <IconBtn onClick={voice.enableRemoteAudio} label="Ativar áudio recebido">
+                    <Volume2 className="h-4 w-4 text-primary" />
+                  </IconBtn>
+                )}
                 <IconBtn onClick={voice.toggleScreenShare} label={voice.sharingScreen ? "Parar transmissão" : "Compartilhar tela"}>
                   <MonitorUp className={`h-4 w-4 ${voice.sharingScreen ? "text-primary" : ""}`} />
                 </IconBtn>
