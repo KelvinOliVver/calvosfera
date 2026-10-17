@@ -390,7 +390,7 @@ export function ChatApp({ userId }: { userId: string }) {
 
   const loadProfiles = async () => {
     const primary = await supabase.from("profiles").select(PROFILE_COLS);
-    let data: Profile[] | null = primary.data;
+    let data: Profile[] | null = primary.data as unknown as Profile[] | null;
     let error = primary.error;
     if (error) {
       const fallback = await supabase.from("profiles").select(LEGACY_PROFILE_COLS);

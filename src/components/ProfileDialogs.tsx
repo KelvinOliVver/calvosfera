@@ -1056,7 +1056,7 @@ export function EditProfile({
 
       const { error: extrasError } = await supabase
         .from("profiles")
-        .update({ profile_extras: extrasToSave })
+        .update({ profile_extras: extrasToSave } as never)
         .eq("id", me.id);
       const savedProfile = { ...draft, profile_extras: extrasToSave };
       setSavedDraft(savedProfile);
