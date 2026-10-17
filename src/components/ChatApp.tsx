@@ -1042,18 +1042,6 @@ export function ChatApp({ userId }: { userId: string }) {
                 </IconBtn>
               </div>
             </div>
-            {Object.entries(voice.remoteScreens).map(([peer, screen]) => (
-              <div key={peer} className="mt-3 overflow-hidden rounded-lg border border-border bg-background">
-                <video
-                  autoPlay
-                  playsInline
-                  ref={(element) => { if (element && element.srcObject !== screen) element.srcObject = screen; }}
-                  className="aspect-video w-full object-contain"
-                  aria-label={`Tela compartilhada por ${nameOf(profiles[peer])}`}
-                />
-                <p className="px-2 py-1 text-xs text-muted-foreground">Tela de {nameOf(profiles[peer])}</p>
-              </div>
-            ))}
           </div>
         )}
         <div className="current-user flex items-center gap-2 border-t border-border px-2.5 py-3">
@@ -1239,6 +1227,28 @@ export function ChatApp({ userId }: { userId: string }) {
               <X className="h-4 w-4" />
             </IconBtn>
           </div>
+        )}
+        {Object.entries(voice.remoteScreens).length > 0 && (
+          <section aria-label="Telas compartilhadas" className="grid shrink-0 gap-3 border-b border-border bg-black/90 p-3 sm:p-4">
+            {Object.entries(voice.remoteScreens).map(([peer, screen]) => (
+              <div key={peer} className="mx-auto w-full max-w-5xl overflow-hidden rounded-lg border border-border/70 bg-black">
+                <video
+                  autoPlay
+                  muted
+                  playsInline
+                  ref={(element) => {
+                    if (element && element.srcObject !== screen) {
+                      element.srcObject = screen;
+                      void element.play().catch(() => {});
+                    }
+                  }}
+                  className="max-h-[45dvh] min-h-40 w-full object-contain"
+                  aria-label={`Tela compartilhada por ${nameOf(profiles[peer])}`}
+                />
+                <p className="bg-background/90 px-3 py-1.5 text-xs text-muted-foreground">Tela de {nameOf(profiles[peer])}</p>
+              </div>
+            ))}
+          </section>
         )}
         <div className="message-stream min-h-0 flex-1 overflow-y-auto px-2 py-5 sm:px-5 xl:px-8">
           {loadingMsgs && (

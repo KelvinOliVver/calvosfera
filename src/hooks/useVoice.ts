@@ -113,12 +113,12 @@ export function useVoice(me: string) {
         if (e.track.kind === "video") {
           const remote = e.streams[0] ?? new MediaStream([e.track]);
           videos.set(peer, remote);
-          const hideRemote = () => setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
-          e.track.onunmute = () => setRemoteScreens((current) => ({ ...current, [peer]: remote }));
-          e.track.onmute = hideRemote;
+          // onunmute can fire before ontrack handlers are attached. Publish the
+          // stream immediately so the video element is mounted in either case.
+          setRemoteScreens((current) => ({ ...current, [peer]: remote }));
           e.track.onended = () => {
             videos.delete(peer);
-            hideRemote();
+            setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
           };
           return;
         }
