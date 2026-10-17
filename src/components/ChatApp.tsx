@@ -11,6 +11,7 @@ import {
   Volume2,
   Mic,
   MicOff,
+  MonitorUp,
   PhoneOff,
   LogOut,
   Pencil,
@@ -1026,6 +1027,9 @@ export function ChatApp({ userId }: { userId: string }) {
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-sm font-medium">{voiceCh.name}</span>
               <div className="flex gap-1">
+                <IconBtn onClick={voice.toggleScreenShare} label={voice.sharingScreen ? "Parar transmissão" : "Compartilhar tela"}>
+                  <MonitorUp className={`h-4 w-4 ${voice.sharingScreen ? "text-primary" : ""}`} />
+                </IconBtn>
                 <IconBtn onClick={voice.toggleMute} label={voice.muted ? "Desmutar" : "Mutar"}>
                   {voice.muted ? (
                     <MicOff className="h-4 w-4 text-destructive" />
@@ -1038,6 +1042,18 @@ export function ChatApp({ userId }: { userId: string }) {
                 </IconBtn>
               </div>
             </div>
+            {Object.entries(voice.remoteScreens).map(([peer, screen]) => (
+              <div key={peer} className="mt-3 overflow-hidden rounded-lg border border-border bg-background">
+                <video
+                  autoPlay
+                  playsInline
+                  ref={(element) => { if (element && element.srcObject !== screen) element.srcObject = screen; }}
+                  className="aspect-video w-full object-contain"
+                  aria-label={`Tela compartilhada por ${nameOf(profiles[peer])}`}
+                />
+                <p className="px-2 py-1 text-xs text-muted-foreground">Tela de {nameOf(profiles[peer])}</p>
+              </div>
+            ))}
           </div>
         )}
         <div className="current-user flex items-center gap-2 border-t border-border px-2.5 py-3">

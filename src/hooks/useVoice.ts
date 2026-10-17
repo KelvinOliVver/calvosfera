@@ -15,8 +15,12 @@ export function useVoice(me: string) {
   const [channelId, setChannelId] = useState<string | null>(null);
   const [peers, setPeers] = useState<string[]>([]);
   const [muted, setMuted] = useState(false);
+  const [sharingScreen, setSharingScreen] = useState(false);
+  const [remoteScreens, setRemoteScreens] = useState<Record<string, MediaStream>>({});
   const [error, setError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const screenRef = useRef<MediaStream | null>(null);
+  const screenSendersRef = useRef<Map<string, RTCRtpSender>>(new Map());
 
   async function join(id: string) {
     if (channelId === id) return;
@@ -32,10 +36,44 @@ export function useVoice(me: string) {
   }
 
   function leave() {
+    screenRef.current?.getTracks().forEach((t) => t.stop());
+    screenRef.current = null;
+    screenSendersRef.current.clear();
+    setSharingScreen(false);
+    setRemoteScreens({});
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setChannelId(null);
     setPeers([]);
+  }
+
+  async function toggleScreenShare() {
+    if (screenRef.current) {
+      const stream = screenRef.current;
+      screenRef.current = null;
+      stream.getTracks().forEach((track) => track.stop());
+      await Promise.all([...screenSendersRef.current.values()].map((sender) => sender.replaceTrack(null).catch(() => {})));
+      setSharingScreen(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const track = stream.getVideoTracks()[0];
+      if (!track) return;
+      screenRef.current = stream;
+      await Promise.all([...screenSendersRef.current.values()].map((sender) => sender.replaceTrack(track)));
+      track.onended = () => {
+        if (screenRef.current !== stream) return;
+        screenRef.current = null;
+        void Promise.all([...screenSendersRef.current.values()].map((sender) => sender.replaceTrack(null).catch(() => {})));
+        setSharingScreen(false);
+      };
+      setSharingScreen(true);
+      setError(null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "NotAllowedError") return;
+      setError("Não foi possível compartilhar a tela");
+    }
   }
 
   function toggleMute() {
@@ -52,6 +90,7 @@ export function useVoice(me: string) {
     const pcs = new Map<string, RTCPeerConnection>();
     const pending = new Map<string, RTCIceCandidateInit[]>();
     const audios = new Map<string, HTMLAudioElement>();
+    const videos = new Map<string, MediaStream>();
 
     const ch = supabase.channel(`voice-${channelId}`, {
       config: { presence: { key: me }, broadcast: { self: false } },
@@ -64,10 +103,25 @@ export function useVoice(me: string) {
       if (existing) return existing;
       const pc = new RTCPeerConnection({ iceServers: ICE });
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      const screenSender = pc.addTransceiver("video", { direction: "sendrecv" }).sender;
+      screenSendersRef.current.set(peer, screenSender);
+      if (screenRef.current?.getVideoTracks()[0]) void screenSender.replaceTrack(screenRef.current.getVideoTracks()[0]);
       pc.onicecandidate = (e) => {
         if (e.candidate) send({ to: peer, kind: "ice", candidate: e.candidate.toJSON() });
       };
       pc.ontrack = (e) => {
+        if (e.track.kind === "video") {
+          const remote = e.streams[0] ?? new MediaStream([e.track]);
+          videos.set(peer, remote);
+          const hideRemote = () => setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
+          e.track.onunmute = () => setRemoteScreens((current) => ({ ...current, [peer]: remote }));
+          e.track.onmute = hideRemote;
+          e.track.onended = () => {
+            videos.delete(peer);
+            hideRemote();
+          };
+          return;
+        }
         let a = audios.get(peer);
         if (!a) {
           a = new Audio();
@@ -89,6 +143,9 @@ export function useVoice(me: string) {
         a.srcObject = null;
         audios.delete(peer);
       }
+      videos.delete(peer);
+      screenSendersRef.current.delete(peer);
+      setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
     };
 
     const flush = async (peer: string, pc: RTCPeerConnection) => {
@@ -143,5 +200,5 @@ export function useVoice(me: string) {
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), []);
 
-  return { channelId, peers, muted, error, join, leave, toggleMute };
+  return { channelId, peers, muted, sharingScreen, remoteScreens, error, join, leave, toggleMute, toggleScreenShare };
 }
