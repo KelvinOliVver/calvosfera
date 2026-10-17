@@ -81,12 +81,18 @@ export function writeProfileExtrasCache(userId: string, value: Json) {
 
 type ProfileConnection = { id: string; label: string; url: string };
 type ProfileWidget = { id: string; title: string; description: string; url: string };
-type AvatarFrame = "none" | "sakura" | "gold";
+type AvatarFrame = "none" | "sakura" | "gold" | "neon" | "crystal" | "flame";
+type NameStyle = "gradient" | "solid" | "neon" | "shine" | "outline";
+type NameFont = "default" | "display" | "rounded" | "mono" | "serif";
+const NAME_STYLES = ["gradient", "solid", "neon", "shine", "outline"] as const;
+const NAME_FONTS = ["default", "display", "rounded", "mono", "serif"] as const;
 type ProfileEffect = "none" | "aurora" | "sakura" | "holographic" | "ember";
 type ProfileExtras = {
   badge: string;
   avatar_frame: AvatarFrame;
   profile_effect: ProfileEffect;
+  name_style: NameStyle;
+  name_font: NameFont;
   connections: ProfileConnection[];
   widgets: ProfileWidget[];
   wishlist: string[];
@@ -140,8 +146,8 @@ function profileExtras(value: Json | undefined): ProfileExtras {
   return {
     badge: typeof data["badge"] === "string" ? data["badge"] : "",
     avatar_frame:
-      data["avatar_frame"] === "sakura" || data["avatar_frame"] === "gold"
-        ? data["avatar_frame"]
+      ["sakura", "gold", "neon", "crystal", "flame"].includes(String(data["avatar_frame"]))
+        ? (data["avatar_frame"] as AvatarFrame)
         : "none",
     profile_effect:
       data["profile_effect"] === "aurora" ||
@@ -150,6 +156,8 @@ function profileExtras(value: Json | undefined): ProfileExtras {
       data["profile_effect"] === "ember"
         ? data["profile_effect"]
         : "none",
+    name_style: NAME_STYLES.includes(data["name_style"] as NameStyle) ? (data["name_style"] as NameStyle) : "gradient",
+    name_font: NAME_FONTS.includes(data["name_font"] as NameFont) ? (data["name_font"] as NameFont) : "default",
     connections,
     widgets,
     wishlist,
@@ -161,7 +169,14 @@ function avatarFrameClass(frame: AvatarFrame) {
     return "bg-gradient-to-br from-pink-200 via-fuchsia-500 to-pink-300 p-1.5";
   if (frame === "gold")
     return "bg-gradient-to-br from-yellow-100 via-amber-500 to-yellow-200 p-1.5";
+  if (frame === "neon") return "avatar-frame-neon p-1.5";
+  if (frame === "crystal") return "avatar-frame-crystal p-1.5";
+  if (frame === "flame") return "avatar-frame-flame p-1.5";
   return "bg-popover p-1.5";
+}
+
+function nameClass(extras: ProfileExtras) {
+  return `profile-name-${extras.name_style} name-font-${extras.name_font}`;
 }
 
 function safeExternalUrl(value: string) {
@@ -320,7 +335,7 @@ export function ProfileCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3
-              className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+              className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
               style={
                 {
                   "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -544,7 +559,7 @@ export function ViewProfile({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2
-                      className="profile-name-gradient break-words font-display text-2xl font-bold leading-tight tracking-tight"
+                      className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
                       style={
                         {
                           "--profile-name-start": p.theme_primary || "var(--foreground)",
@@ -1304,7 +1319,7 @@ export function EditProfile({
               <div className="space-y-2">
                 <SideLabel>Efeitos de perfil e molduras</SideLabel>
                 <div className="flex items-center gap-2">
-                  <div className="relative h-[82px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
+                  <div className="relative h-[120px] flex-1 overflow-hidden rounded-xl border border-border bg-panel">
                     <img
                       src={draft.banner_url || cityBanner}
                       alt=""
@@ -1316,12 +1331,15 @@ export function EditProfile({
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[82px] flex-1 flex-col justify-center gap-1 rounded-xl border border-border bg-card p-2">
+                  <div className="flex max-h-[120px] flex-1 flex-col gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2">
                     {(
                       [
                         ["none", "Padrão"],
                         ["sakura", "Sakura"],
                         ["gold", "Dourada"],
+                        ["neon", "Neon"],
+                        ["crystal", "Cristal"],
+                        ["flame", "Chamas"],
                       ] as const
                     ).map(([frame, label]) => (
                       <button
@@ -1338,6 +1356,45 @@ export function EditProfile({
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <SideLabel>Estilo do nome</SideLabel>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Como seu nome aparece no perfil. Usa as cores do tema acima.
+                </p>
+                <div
+                  className="rounded-xl border border-border bg-panel px-3 py-4 text-center"
+                  style={{
+                    "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                    "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                  } as CSSProperties}
+                >
+                  <span className={`${nameClass(extras)} text-2xl font-bold`}>{nameOf(draft)}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["gradient", "Degradê"],
+                    ["solid", "Sólido"],
+                    ["neon", "Neon"],
+                    ["shine", "Brilho"],
+                    ["outline", "Contorno"],
+                  ] as const).map(([style, label]) => (
+                    <button key={style} type="button" aria-pressed={extras.name_style === style} onClick={() => setExtras({ name_style: style })} className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition ${extras.name_style === style ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
+                </div>
+                <SideLabel>Fonte do nome</SideLabel>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["default", "Padrão"],
+                    ["display", "Título"],
+                    ["rounded", "Redonda"],
+                    ["mono", "Pixel"],
+                    ["serif", "Elegante"],
+                  ] as const).map(([font, label]) => (
+                    <button key={font} type="button" aria-pressed={extras.name_font === font} onClick={() => setExtras({ name_font: font })} className={`name-font-${font} rounded-lg border px-2 py-1.5 text-sm transition ${extras.name_font === font ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  ))}
                 </div>
               </div>
 
@@ -1542,7 +1599,7 @@ export function EditProfile({
               {tab === "profile" ? (
                 <>
                   <h1
-                    className="profile-name-gradient font-sans text-2xl font-bold tracking-tight"
+                    className={`${nameClass(extras)} text-2xl font-bold tracking-tight`}
                     style={
                       {
                         "--profile-name-start": draft.theme_primary || "var(--foreground)",
