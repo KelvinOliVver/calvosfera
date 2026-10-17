@@ -1124,7 +1124,7 @@ export function EditProfile({
                 <button
                   key={sectionId}
                   type="button"
-                  onClick={() => jumpToSection(sectionId)}
+                  onClick={() => jumpToSection(sectionId ?? "")}
                   aria-current={activeEditorSection === sectionId ? "location" : undefined}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeEditorSection === sectionId ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                 >
