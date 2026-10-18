@@ -43,17 +43,17 @@
 
 :root {
   --radius: 0.7rem;
-  --background: #181a1c;
-  --foreground: #e8e9e9;
-  --rail: #151719;
-  --panel: #1e2022;
-  --card: #25282a;
+  --background: #0e1114;
+  --foreground: #f1f4f3;
+  --rail: #0b0e11;
+  --panel: #151a1c;
+  --card: #1d2525;
   --card-foreground: #e8e9e9;
   --popover: #222426;
   --popover-foreground: #e8e9e9;
-  --primary: #65c7ab;
-  --primary-foreground: #10221c;
-  --secondary: #89959a;
+  --primary: #72e2c2;
+  --primary-foreground: #082119;
+  --secondary: #9aa9ad;
   --secondary-foreground: #171a1c;
   --muted: #2b2e30;
   --muted-foreground: #a0a5a7;
@@ -82,7 +82,7 @@
   --warning: var(--idle);
   --gradient-sakura: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--secondary)));
   --gradient-aurora: none;
-  --shadow-glow: 0 14px 32px -22px rgb(0 0 0 / 58%);
+  --shadow-glow: 0 20px 55px -28px rgb(0 0 0 / 82%);
   --scrim: rgb(6 7 10 / 76%);
   --auth-overlay: linear-gradient(
     90deg,
@@ -170,7 +170,7 @@ html[data-theme="amoled"] {
   body {
     min-height: 100vh;
     background-color: var(--color-background);
-    background-image: var(--gradient-aurora);
+    background-image: radial-gradient(circle at 15% -10%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 30%), radial-gradient(circle at 90% 0%, color-mix(in srgb, #8b7cf6 8%, transparent), transparent 28%), var(--gradient-aurora);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     min-width: 320px;
@@ -196,8 +196,9 @@ html[data-theme="amoled"] {
 
 @layer components {
   .app-shell {
-    background: var(--surface-primary);
-    border: 1px solid var(--border);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--surface-primary) 96%, white), var(--surface-primary));
+    border: 1px solid color-mix(in srgb, var(--border) 90%, var(--primary) 10%);
+    box-shadow: 0 28px 80px -42px rgb(0 0 0 / 90%);
   }
 
   .glass-panel {
@@ -207,8 +208,26 @@ html[data-theme="amoled"] {
   }
 
   .soft-card {
-    background: var(--surface-secondary);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--surface-secondary) 96%, white), var(--surface-secondary));
     border: 1px solid var(--border);
+    box-shadow: 0 12px 30px -26px rgb(0 0 0 / 90%);
+  }
+
+  .chat-sidebar,
+  .members-sidebar {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
+  }
+
+  .profile-editor-shell {
+    background: radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 28%), var(--background);
+  }
+
+  .profile-editor-nav {
+    background: color-mix(in srgb, var(--rail) 94%, var(--primary) 6%);
+  }
+
+  .profile-editor-preview {
+    box-shadow: 0 30px 80px -40px color-mix(in srgb, var(--primary) 35%, black);
   }
 
   .auth-card { box-shadow: 0 18px 40px -30px rgb(0 0 0 / 72%); }

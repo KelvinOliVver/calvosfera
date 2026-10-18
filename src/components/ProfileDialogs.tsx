@@ -1114,9 +1114,9 @@ export function EditProfile({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background text-foreground animate-in fade-in duration-150">
+    <div className="profile-editor-shell fixed inset-0 z-50 overflow-y-auto bg-background text-foreground animate-in fade-in duration-150">
       <div className="grid min-h-screen grid-cols-1 md:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:min-h-dvh xl:grid-cols-[minmax(270px,300px)_minmax(330px,0.9fr)_minmax(320px,1fr)]">
-        <aside className="border-b border-border bg-rail md:row-span-2 md:border-r md:border-b-0 xl:row-span-1">
+        <aside className="profile-editor-nav border-b border-border bg-rail md:row-span-2 md:border-r md:border-b-0 xl:row-span-1">
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <button
               onClick={() => setTab(tab === "profile" ? "account" : "profile")}
@@ -1553,7 +1553,7 @@ export function EditProfile({
               <span className="h-1.5 w-1.5 rounded-full bg-online" /> AO VIVO
             </span>
           </div>
-          <div className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-black/50">
+          <div className="profile-editor-preview relative z-10 w-full max-w-[390px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-black/50">
             <div
               className={`relative h-44 overflow-hidden ${profileEffectClass(extras.profile_effect)}`}
               style={bannerStyle(draft)}
