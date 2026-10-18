@@ -5,12 +5,14 @@ import { registerAccount } from "@/lib/accounts.functions";
 import { getIdentity, usernameToEmail } from "@/lib/device";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Eye, EyeOff } from "lucide-react";
 import bg from "@/assets/bg.jpg";
 
 export function AuthScreen() {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -45,19 +47,19 @@ export function AuthScreen() {
         </span>
         <span className="text-base font-semibold tracking-tight">Calvosfera</span>
       </header>
-      <main className="mx-auto grid min-h-[calc(100dvh-84px)] max-w-6xl items-center gap-10 px-6 pb-10 md:grid-cols-[minmax(0,1fr)_400px] sm:px-10">
-        <div className="hidden max-w-xl md:block">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+      <main className="mx-auto grid min-h-[calc(100dvh-84px)] max-w-6xl items-center gap-6 px-6 pb-10 md:grid-cols-[minmax(0,1fr)_400px] md:gap-10 sm:px-10">
+        <div className="max-w-xl">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary md:mb-3 md:text-xs">
             Comunidade Calvosfera
           </p>
-          <h1 className="max-w-lg text-4xl font-semibold leading-[1.12] tracking-tight lg:text-5xl">
+          <h1 className="max-w-lg text-[1.7rem] font-semibold leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
             Converse, jogue e fique por dentro.
           </h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-white/75">
+          <p className="mt-3 max-w-md text-sm leading-6 text-white/75 md:mt-5 md:text-base md:leading-7">
             Entre nos canais, encontre sua comunidade e continue de onde a conversa parou.
           </p>
         </div>
-        <div className="auth-card mx-auto w-full max-w-[400px] rounded-2xl border border-border bg-panel p-7 sm:p-8 md:ml-auto md:mr-0">
+        <div className="auth-card mx-auto w-full max-w-[400px] rounded-2xl border border-border bg-panel p-6 sm:p-8 md:ml-auto md:mr-0">
           <h2 className="text-2xl font-semibold tracking-tight">
             {mode === "in" ? "Entrar" : "Criar sua conta"}
           </h2>
@@ -79,16 +81,29 @@ export function AuthScreen() {
               />
             </Field>
             <Field label="Senha">
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === "in" ? "current-password" : "new-password"}
-                placeholder="Sua senha"
-                className="h-11 border-input bg-background transition-colors focus-visible:border-primary/60"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={mode === "in" ? "current-password" : "new-password"}
+                  placeholder="Sua senha"
+                  className="h-11 border-input bg-background pr-11 transition-colors focus-visible:border-primary/60"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
+              </div>
             </Field>
             <Button
               type="submit"

@@ -35,6 +35,7 @@ import {
   CheckCheck,
   AtSign,
   MessageCircle,
+  MoreHorizontal,
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,7 @@ export function ChatApp({ userId }: { userId: string }) {
   const [communityOpen, setCommunityOpen] = useState(false);
   const [threadRoot, setThreadRoot] = useState<Message | null>(null);
   const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [searchTarget, setSearchTarget] = useState<Message | null>(null);
   const [searchJumpVersion, setSearchJumpVersion] = useState(0);
   const [searchReadyId, setSearchReadyId] = useState<string | null>(null);
@@ -1183,6 +1185,63 @@ export function ChatApp({ userId }: { userId: string }) {
                 </div>
               </PopoverContent>
             </Popover>
+            <Popover open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Mais opções"
+                  title="Mais opções"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent sm:hidden"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2">
+                <div className="grid gap-1">
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => {
+                      setCommunityOpen(true);
+                      setMobileActionsOpen(false);
+                    }}
+                  >
+                    <Vote className="h-4 w-4" /> Central da comunidade
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => {
+                      setSavedMessagesOpen(true);
+                      setMobileActionsOpen(false);
+                    }}
+                  >
+                    <Bookmark className="h-4 w-4" /> Mensagens salvas
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => {
+                      setPreferencesOpen(true);
+                      setMobileActionsOpen(false);
+                    }}
+                  >
+                    <Palette className="h-4 w-4" /> Aparência e preferências
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => {
+                      setMessageSearchOpen(true);
+                      setMobileActionsOpen(false);
+                    }}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" /> Busca avançada
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <span className="hidden sm:inline-flex"><IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade"><Vote className="h-4 w-4" /></IconBtn></span>
             <span className="hidden sm:inline-flex"><IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas"><Bookmark className="h-4 w-4" /></IconBtn></span>
             <span className="hidden sm:inline-flex"><IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências"><Palette className="h-4 w-4" /></IconBtn></span>
@@ -1476,7 +1535,7 @@ export function ChatApp({ userId }: { userId: string }) {
                     </div>
                   </div>
                   <div
-                    className="message-actions absolute right-3 top-0 z-20 flex items-center gap-0.5 rounded-lg border border-border bg-popover p-0.5 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                    className={`message-actions absolute ${isMine ? "left-3" : "right-3"} top-0 z-20 flex items-center gap-0.5 rounded-lg border border-border bg-popover p-0.5 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 focus-within:opacity-100`}
                   >
                     <Button
                       variant="ghost"
@@ -1868,7 +1927,21 @@ export function ChatApp({ userId }: { userId: string }) {
         p={viewing}
         onClose={() => setViewing(null)}
         actions={
-          status?.isAdmin && viewing && viewing.id !== userId ? (
+          viewing?.id === userId ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Editar perfil"
+              title="Editar perfil"
+              onClick={() => {
+                setViewing(null);
+                setEditing(true);
+              }}
+              className="h-8 w-8 rounded-lg"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          ) : status?.isAdmin && viewing ? (
             <Button
               variant="ghost"
               onClick={() => toggleBan(viewing)}

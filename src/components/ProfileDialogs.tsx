@@ -86,7 +86,16 @@ type NameStyle = "gradient" | "solid" | "neon" | "shine" | "outline";
 type NameFont = "default" | "display" | "rounded" | "mono" | "serif";
 const NAME_STYLES = ["gradient", "solid", "neon", "shine", "outline"] as const;
 const NAME_FONTS = ["default", "display", "rounded", "mono", "serif"] as const;
-type ProfileEffect = "none" | "aurora" | "sakura" | "holographic" | "ember";
+const PROFILE_EFFECTS = [
+  "aurora",
+  "sakura",
+  "holographic",
+  "ember",
+  "constellation",
+  "cyber",
+  "waves",
+] as const;
+type ProfileEffect = "none" | (typeof PROFILE_EFFECTS)[number];
 type ProfileExtras = {
   badge: string;
   avatar_frame: AvatarFrame;
@@ -145,19 +154,22 @@ function profileExtras(value: Json | undefined): ProfileExtras {
 
   return {
     badge: typeof data["badge"] === "string" ? data["badge"] : "",
-    avatar_frame:
-      ["sakura", "gold", "neon", "crystal", "flame"].includes(String(data["avatar_frame"]))
-        ? (data["avatar_frame"] as AvatarFrame)
-        : "none",
-    profile_effect:
-      data["profile_effect"] === "aurora" ||
-      data["profile_effect"] === "sakura" ||
-      data["profile_effect"] === "holographic" ||
-      data["profile_effect"] === "ember"
-        ? data["profile_effect"]
-        : "none",
-    name_style: NAME_STYLES.includes(data["name_style"] as NameStyle) ? (data["name_style"] as NameStyle) : "gradient",
-    name_font: NAME_FONTS.includes(data["name_font"] as NameFont) ? (data["name_font"] as NameFont) : "default",
+    avatar_frame: ["sakura", "gold", "neon", "crystal", "flame"].includes(
+      String(data["avatar_frame"]),
+    )
+      ? (data["avatar_frame"] as AvatarFrame)
+      : "none",
+    profile_effect: PROFILE_EFFECTS.includes(
+      data["profile_effect"] as (typeof PROFILE_EFFECTS)[number],
+    )
+      ? (data["profile_effect"] as ProfileEffect)
+      : "none",
+    name_style: NAME_STYLES.includes(data["name_style"] as NameStyle)
+      ? (data["name_style"] as NameStyle)
+      : "gradient",
+    name_font: NAME_FONTS.includes(data["name_font"] as NameFont)
+      ? (data["name_font"] as NameFont)
+      : "default",
     connections,
     widgets,
     wishlist,
@@ -519,110 +531,73 @@ export function ViewProfile({
 
   return (
     <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[min(960px,calc(100vw-24px))] max-w-none gap-0 overflow-hidden rounded-2xl border border-border bg-panel p-0 shadow-2xl [&>button]:right-3 [&>button]:top-3 [&>button]:z-30 [&>button]:rounded-lg [&>button]:border [&>button]:border-white/10 [&>button]:bg-black/35 [&>button]:p-2 [&>button]:text-white [&>button]:opacity-100 [&>button]:backdrop-blur-sm">
+      <DialogContent className="w-[min(920px,calc(100vw-24px))] max-w-none gap-0 overflow-hidden rounded-2xl border border-border bg-panel p-0 shadow-2xl [&>button]:right-3 [&>button]:top-3 [&>button]:z-30 [&>button]:rounded-lg [&>button]:border [&>button]:border-white/10 [&>button]:bg-black/35 [&>button]:p-2 [&>button]:text-white [&>button]:opacity-100 [&>button]:backdrop-blur-sm">
         <DialogTitle className="sr-only">Perfil de {p ? nameOf(p) : ""}</DialogTitle>
         {p && (
-          <div className="flex max-h-[88dvh] min-h-[min(600px,80dvh)] flex-col overflow-hidden md:flex-row">
-            <section className="min-h-0 max-h-[40dvh] w-full shrink-0 overflow-y-auto border-b border-border bg-popover md:max-h-none md:w-[390px] md:border-b-0 md:border-r">
-              <div className="relative h-44 overflow-hidden" style={bannerStyle(p)}>
-                {p.banner_url && (
-                  <img
-                    src={p.banner_url}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                )}
-                <div className={`absolute inset-0 ${profileEffectClass(extras.profile_effect)}`} />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-black/65" />
-                <div
-                  className="absolute inset-x-0 bottom-0 h-1"
-                  style={{
-                    background: `linear-gradient(90deg, ${p.theme_primary || "var(--primary)"}, ${p.theme_accent || p.theme_primary || "var(--secondary)"}, transparent)`,
-                  }}
-                />
-                <span className="absolute bottom-3 left-4 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-sm">
-                  CALVOSFERA
-                </span>
-              </div>
-              <div className="px-5 pb-5">
-                <div className="-mt-10 mb-3 flex items-end justify-between">
-                  <div
-                    className={`rounded-full bg-popover p-1.5 ${avatarFrameClass(extras.avatar_frame)}`}
-                  >
-                    <Avatar p={p} size={76} status={presence} ring="border-popover" />
-                  </div>
-                  <span className="mb-1 inline-flex items-center gap-2 rounded-full border border-border bg-background/85 px-2.5 py-1 text-[11px] font-medium text-foreground/85">
-                    <span className={`h-2 w-2 rounded-full ${dotClass(presence)}`} />
-                    {STATUS_LABEL[presence] ?? STATUS_LABEL.invisible}
-                  </span>
+          <div className="flex max-h-[88dvh] min-h-[min(600px,80dvh)] flex-col overflow-hidden">
+            <div className={`profile-effect relative h-48 shrink-0 overflow-hidden ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(p)}>
+              <img src={p.banner_url || cityBanner} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 z-[2] bg-gradient-to-t from-black/85 via-black/20 to-black/5" />
+              <span className="absolute bottom-4 left-5 z-[3] inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] text-white/90 backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> PERFIL DA CALVOSFERA
+              </span>
+            </div>
+            <header className="relative z-10 flex shrink-0 flex-wrap items-end gap-4 border-b border-border bg-popover px-5 pb-4 md:px-7">
+              <div className="-mt-12 rounded-full bg-popover p-1.5">
+                <div className={`rounded-full ${avatarFrameClass(extras.avatar_frame)}`}>
+                  <Avatar p={p} size={88} status={presence} ring="border-popover" />
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2
-                      className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight tracking-tight`}
-                      style={
-                        {
-                          "--profile-name-start": p.theme_primary || "var(--foreground)",
-                          "--profile-name-end":
-                            p.theme_accent || p.theme_primary || "var(--foreground)",
-                        } as CSSProperties
-                      }
-                    >
-                      {nameOf(p)}
-                    </h2>
-                    <p className="mt-1 break-all text-sm text-muted-foreground">
-                      @{p.username}
-                      {p.pronouns ? ` · ${p.pronouns}` : ""}
-                    </p>
-                  </div>
+              </div>
+              <div className="min-w-[180px] flex-1 pb-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2
+                    className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight`}
+                    style={{
+                      "--profile-name-start": p.theme_primary || "var(--foreground)",
+                      "--profile-name-end": p.theme_accent || p.theme_primary || "var(--foreground)",
+                    } as CSSProperties}
+                  >
+                    {nameOf(p)}
+                  </h2>
                   {extras.badge && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-foreground">
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      {extras.badge}
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                      <Sparkles className="h-3 w-3 text-primary" /> {extras.badge}
                     </span>
                   )}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void copyHandle()}
-                    className="h-8 gap-1.5 rounded-lg px-2.5 text-xs"
-                  >
-                    <Copy className="h-3.5 w-3.5" /> Copiar usuário
-                  </Button>
-                  {actions}
-                </div>
-                <div className="my-4 h-px bg-border" />
+                <p className="mt-1 break-all text-sm text-muted-foreground">
+                  @{p.username}{p.pronouns ? ` · ${p.pronouns}` : ""}
+                </p>
                 {p.custom_status && (
-                  <section className="mb-3 rounded-xl border border-border bg-background/45 p-3.5">
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Status
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  <div className="mt-2 flex max-w-xl items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.07] px-3 py-2">
+                    <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <p className="line-clamp-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground/85">
                       {p.custom_status}
                     </p>
-                  </section>
+                  </div>
                 )}
-                {p.bio ? (
-                  <section className="mb-3 rounded-xl border border-border bg-background/45 p-3.5">
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Sobre mim
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-                      {p.bio}
-                    </p>
-                  </section>
-                ) : (
-                  <section className="mb-3 rounded-xl border border-border bg-background/35 p-3.5">
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Sobre mim
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Este membro ainda não adicionou uma apresentação.
-                    </p>
-                  </section>
-                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pb-1">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[11px] font-medium text-foreground/85">
+                  <span className={`h-2 w-2 rounded-full ${dotClass(presence)}`} />
+                  {STATUS_LABEL[presence] ?? STATUS_LABEL.invisible}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Copiar nick"
+                  title="Copiar nick"
+                  onClick={() => void copyHandle()}
+                  className="h-8 w-8 rounded-lg"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                {actions}
+              </div>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+            <section className="order-2 min-h-0 max-h-[38dvh] w-full shrink-0 overflow-y-auto border-t border-border bg-popover md:order-2 md:max-h-none md:w-[280px] md:border-l md:border-t-0">
+                <div className="space-y-3 p-4 md:p-5">
                 {p.created_at && (
                   <section className="mb-3 flex items-center gap-3 rounded-xl border border-border bg-background/35 p-3.5">
                     <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
@@ -667,22 +642,19 @@ export function ViewProfile({
               </div>
             </section>
 
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-panel">
+            <section className="order-1 flex min-h-0 min-w-0 flex-1 flex-col bg-panel md:order-1">
               <header className="border-b border-border px-5 pb-0 pt-5 md:px-7">
-                <p className="text-sm font-semibold">Espaço de {nameOf(p)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Conteúdo que este membro escolheu compartilhar.
-                </p>
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Perfil</p>
                 <div
                   role="tablist"
                   aria-label="Conteúdo do perfil"
-                  className="mt-5 flex gap-6 overflow-x-auto"
+                  className="mt-3 flex gap-6 overflow-x-auto"
                 >
                   {(
                     [
-                      ["wall", "Mural"],
+                      ["wall", "Sobre"],
                       ["activity", "Atividade"],
-                      ["wishlist", "Lista de desejos"],
+                      ["wishlist", "Interesses"],
                     ] as const
                   ).map(([key, label]) => (
                     <button
@@ -704,9 +676,18 @@ export function ViewProfile({
               <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7" role="tabpanel">
                 {tab === "wall" && (
                   <>
-                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      Widgets do perfil
-                    </p>
+                    <section className="mb-6 rounded-xl border border-border bg-background/45 p-4 sm:p-5">
+                      <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        <UserRound className="h-4 w-4 text-primary" /> Sobre {nameOf(p)}
+                      </div>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
+                        {p.bio || "Este membro ainda não adicionou uma apresentação."}
+                      </p>
+                    </section>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Destaques</p>
+                      <span className="text-xs text-muted-foreground">{extras.widgets.length} {extras.widgets.length === 1 ? "item" : "itens"}</span>
+                    </div>
                     {extras.widgets.length ? (
                       <div className="space-y-3">
                         {extras.widgets.map((widget) => {
@@ -740,12 +721,16 @@ export function ViewProfile({
                         })}
                       </div>
                     ) : (
-                      <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
-                        <LayoutGrid className="h-6 w-6 text-muted-foreground" />
-                        <p className="mt-3 text-sm font-medium">Mural vazio</p>
-                        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-                          Quando {nameOf(p)} adicionar widgets ao perfil, eles aparecerão aqui.
-                        </p>
+                      <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-background/30 px-4 py-3.5">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <LayoutGrid className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Mural sem publicações</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                            Os widgets de {nameOf(p)} aparecerão aqui.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </>
@@ -790,6 +775,7 @@ export function ViewProfile({
                 )}
               </div>
             </section>
+            </div>
           </div>
         )}
       </DialogContent>
@@ -849,15 +835,15 @@ function ColorField({
         >
           —
         </Button>
-        {SWATCHES.map((c) => (
+        {SWATCHES.map((color) => (
           <Button
             variant="ghost"
-            key={c}
+            key={color}
             type="button"
-            onClick={() => onChange(c)}
-            className={`h-9 w-9 rounded-md transition hover:scale-105 ${value === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
-            style={{ background: c }}
-            aria-label={c}
+            onClick={() => onChange(color)}
+            className={`h-9 w-9 rounded-md transition hover:scale-105 ${value === color ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
+            style={{ background: color }}
+            aria-label={color}
           />
         ))}
         <label
@@ -893,6 +879,7 @@ export function EditProfile({
 }) {
   const [tab, setTab] = useState<"account" | "profile">("profile");
   const [profileTab, setProfileTab] = useState<"wall" | "activity" | "wishlist">("wall");
+  const [mobileView, setMobileView] = useState<"edit" | "preview" | "content">("edit");
   const [activeEditorSection, setActiveEditorSection] = useState("profile-identity");
   const [draft, setDraft] = useState<Profile>(me);
   const [savedDraft, setSavedDraft] = useState<Profile>(me);
@@ -1115,8 +1102,41 @@ export function EditProfile({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background text-foreground animate-in fade-in duration-150">
-      <div className="grid min-h-screen grid-cols-1 md:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:min-h-dvh xl:grid-cols-[minmax(270px,300px)_minmax(330px,0.9fr)_minmax(320px,1fr)]">
-        <aside className="border-b border-border bg-rail md:row-span-2 md:border-r md:border-b-0 xl:row-span-1">
+      <nav
+        aria-label="Vistas da personalização"
+        className="sticky top-0 z-[55] flex items-center gap-2 border-b border-border bg-rail/95 px-3 py-2 backdrop-blur md:hidden"
+      >
+        <div role="tablist" className="grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-lg bg-background/70 p-1">
+          {([
+            ["edit", "Editar"],
+            ["preview", "Prévia"],
+            ["content", "Conteúdo"],
+          ] as const).map(([view, label]) => (
+            <button
+              key={view}
+              type="button"
+              role="tab"
+              aria-selected={mobileView === view}
+              onClick={() => setMobileView(view)}
+              className={`min-h-9 rounded-md px-2 text-xs font-semibold transition ${mobileView === view ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Fechar personalização"
+          onClick={closeEditor}
+          className="shrink-0"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </nav>
+      <div className="grid min-h-[calc(100dvh-56px)] grid-cols-1 md:min-h-screen md:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:min-h-dvh xl:grid-cols-[minmax(270px,300px)_minmax(330px,0.9fr)_minmax(320px,1fr)]">
+        <aside className={`${mobileView === "edit" ? "block" : "hidden"} border-b border-border bg-rail md:row-span-2 md:block md:border-r md:border-b-0 xl:row-span-1`}>
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <button
               onClick={() => setTab(tab === "profile" ? "account" : "profile")}
@@ -1422,14 +1442,17 @@ export function EditProfile({
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Escolha uma camada visual sutil. Ela aparece na prévia e no perfil público.
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {(
                     [
                       ["none", "Sem efeito", "Visual limpo"],
-                      ["aurora", "Aurora", "Luzes fluidas"],
-                      ["sakura", "Pétalas", "Brilho rosado"],
-                      ["holographic", "Irisado", "Reflexos de cor"],
-                      ["ember", "Brasa", "Luz quente"],
+                      ["aurora", "Aurora", "Luz em movimento"],
+                      ["sakura", "Sakura", "Pétalas flutuantes"],
+                      ["holographic", "Irisado", "Reflexos prismáticos"],
+                      ["ember", "Brasa", "Faíscas quentes"],
+                      ["constellation", "Constelação", "Céu estrelado"],
+                      ["cyber", "Cibernético", "Grade e varredura"],
+                      ["waves", "Ondas", "Maré luminosa"],
                     ] as const
                   ).map(([effect, label, description]) => (
                     <button
@@ -1437,12 +1460,21 @@ export function EditProfile({
                       type="button"
                       aria-pressed={extras.profile_effect === effect}
                       onClick={() => setExtras({ profile_effect: effect })}
-                      className={`rounded-lg border p-2 text-left transition ${extras.profile_effect === effect ? "border-primary/60 bg-primary/10" : "border-border bg-panel hover:bg-accent"}`}
+                      className={`min-w-0 rounded-lg border p-2.5 text-left transition ${extras.profile_effect === effect ? "border-primary/60 bg-primary/10 ring-1 ring-primary/20" : "border-border bg-panel hover:bg-accent"}`}
                     >
                       <span
-                        className={`mb-2 block h-5 rounded ${profileEffectClass(effect)}`}
+                        className={`profile-effect relative mb-2 flex h-14 items-end overflow-hidden rounded-lg border border-white/10 ${profileEffectClass(effect)}`}
                         style={bannerStyle(draft)}
-                      />
+                      >
+                        <img
+                          src={draft.banner_url || cityBanner}
+                          alt=""
+                          className="absolute inset-0 z-0 h-full w-full object-cover opacity-75"
+                        />
+                        <span className="relative z-[2] m-1.5 max-w-[calc(100%-0.75rem)] truncate rounded-md border border-white/15 bg-black/45 px-2 py-1 text-[9px] font-semibold text-white">
+                          {nameOf(draft)}
+                        </span>
+                      </span>
                       <span className="block text-xs font-semibold">{label}</span>
                       <span className="mt-0.5 block text-[10px] text-muted-foreground">
                         {description}
@@ -1533,7 +1565,7 @@ export function EditProfile({
           </div>
         </aside>
 
-        <main className="relative flex min-h-[620px] flex-col items-center justify-start gap-5 overflow-hidden border-b border-border bg-rail px-5 py-8 md:border-r xl:min-h-screen xl:px-7 xl:py-10">
+        <main className={`${mobileView === "preview" ? "flex" : "hidden md:flex"} relative min-h-[620px] flex-col items-center justify-start gap-5 overflow-hidden border-b border-border bg-rail px-5 py-8 md:border-r xl:min-h-screen xl:px-7 xl:py-10`}>
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.18]"
             style={{
@@ -1765,7 +1797,7 @@ export function EditProfile({
 
         <section
           id="profile-content"
-          className="min-w-0 scroll-mt-5 bg-panel px-5 py-8 md:col-span-2 md:px-8 xl:col-span-1 xl:px-7 xl:py-10"
+          className={`${mobileView === "content" ? "block" : "hidden md:block"} min-w-0 scroll-mt-5 bg-panel px-5 py-8 md:col-span-2 md:px-8 xl:col-span-1 xl:px-7 xl:py-10`}
         >
           <div className="mb-6">
             <p className="text-sm font-semibold">Seu espaço</p>

@@ -7,12 +7,15 @@ const TOKEN =
 function Spoiler({ children }: { children: ReactNode }) {
   const [shown, setShown] = useState(false);
   return (
-    <span
-      onClick={() => setShown(true)}
-      className={`cursor-pointer rounded px-0.5 transition ${shown ? "bg-accent" : "bg-muted-foreground text-transparent select-none"}`}
+    <button
+      type="button"
+      aria-label={shown ? "Ocultar spoiler" : "Revelar spoiler"}
+      aria-pressed={shown}
+      onClick={() => setShown((current) => !current)}
+      className={`cursor-pointer rounded border-0 bg-transparent p-0 align-baseline text-inherit transition ${shown ? "bg-accent" : "bg-muted-foreground text-transparent select-none"}`}
     >
       {children}
-    </span>
+    </button>
   );
 }
 

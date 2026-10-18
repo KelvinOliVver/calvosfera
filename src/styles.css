@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -174,7 +174,7 @@ html[data-theme="amoled"] {
     color: var(--color-foreground);
     font-family: var(--font-sans);
     min-width: 320px;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
   }
   #root {
@@ -185,7 +185,7 @@ html[data-theme="amoled"] {
   h3,
   h4 {
     font-family: var(--font-sans);
-    letter-spacing: -0.025em;
+    letter-spacing: 0;
   }
   button,
   input,
@@ -378,42 +378,138 @@ html[data-theme="amoled"] .server-rail { background: #000; }
 }
 .profile-effect-aurora::before {
   background:
-    radial-gradient(ellipse at 18% 82%, color-mix(in srgb, var(--primary) 65%, transparent), transparent 48%),
-    radial-gradient(ellipse at 78% 18%, color-mix(in srgb, var(--secondary) 62%, transparent), transparent 46%);
-  filter: blur(12px);
-  opacity: 0.48;
-  animation: profile-aurora 18s ease-in-out infinite alternate;
+    linear-gradient(112deg, transparent 18%, color-mix(in srgb, var(--primary) 32%, transparent) 42%, transparent 68%),
+    linear-gradient(155deg, transparent 34%, color-mix(in srgb, var(--secondary) 30%, transparent) 58%, transparent 82%);
+  background-size: 180% 180%;
+  opacity: 0.68;
+  animation: profile-aurora 10s ease-in-out infinite alternate;
+}
+.profile-effect-aurora::after {
+  background: linear-gradient(120deg, transparent 35%, rgb(255 255 255 / 18%) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: profile-glint 7s ease-in-out infinite;
 }
 .profile-effect-sakura::before {
   background:
-    radial-gradient(ellipse at 20% 30%, #ff8fbd35, transparent 35%),
-    radial-gradient(ellipse at 82% 72%, #d66bff2b, transparent 38%);
-  opacity: 0.72;
+    radial-gradient(ellipse at 18% 25%, #ff8fbd55, transparent 42%),
+    radial-gradient(ellipse at 82% 75%, #d66bff45, transparent 44%);
+  opacity: 0.82;
 }
 .profile-effect-sakura::after {
-  background-image: radial-gradient(circle, #ffe3f5cc 0 1.5px, transparent 2px);
-  background-size: 47px 39px;
-  opacity: 0.2;
+  background-image:
+    radial-gradient(ellipse 3px 5px at 12px 14px, #ffe3f5d9 0 70%, transparent 76%),
+    radial-gradient(ellipse 3px 5px at 47px 36px, #ffb8d6c9 0 70%, transparent 76%),
+    radial-gradient(ellipse 2px 4px at 75px 9px, #fff0f7d9 0 70%, transparent 76%);
+  background-size: 92px 58px;
+  opacity: 0.64;
+  animation: profile-petals 12s linear infinite;
 }
 .profile-effect-holographic::before {
-  background: linear-gradient(115deg, #57d8ff20, #c16bff2b 38%, #ff8bc222 62%, #73f5d720);
+  background: linear-gradient(115deg, #57d8ff55, #c16bff6b 38%, #ff8bc255 62%, #73f5d755);
   background-size: 220% 220%;
   mix-blend-mode: screen;
-  animation: profile-holographic 18s ease-in-out infinite alternate;
+  opacity: 0.68;
+  animation: profile-holographic 9s ease-in-out infinite alternate;
+}
+.profile-effect-holographic::after {
+  background: repeating-linear-gradient(115deg, transparent 0 18px, rgb(255 255 255 / 18%) 19px, transparent 20px 38px);
+  background-size: 200% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  animation: profile-holographic 14s linear infinite alternate;
 }
 .profile-effect-ember::before {
   background:
-    radial-gradient(ellipse at 12% 100%, #ff762c48, transparent 42%),
-    radial-gradient(ellipse at 86% 85%, #ffcf5b32, transparent 38%);
-  filter: blur(10px);
+    linear-gradient(0deg, #ff762c66, transparent 70%),
+    radial-gradient(ellipse at 76% 95%, #ffcf5b55, transparent 42%);
+  opacity: 0.72;
+  animation: profile-ember 4s ease-in-out infinite alternate;
+}
+.profile-effect-ember::after {
+  background-image:
+    radial-gradient(circle at 18% 76%, #ffe8b8 0 1px, transparent 1.6px),
+    radial-gradient(circle at 64% 86%, #ffc06b 0 1px, transparent 1.7px),
+    radial-gradient(circle at 88% 68%, #fff0c2 0 1px, transparent 1.6px);
+  background-size: 72px 52px;
+  opacity: 0.72;
+  animation: profile-sparks 5s linear infinite;
+}
+.profile-effect-constellation::before {
+  background-image:
+    radial-gradient(circle at 12% 22%, #fff 0 1px, transparent 1.7px),
+    radial-gradient(circle at 37% 68%, #d8f4ff 0 1px, transparent 1.8px),
+    radial-gradient(circle at 61% 28%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 84% 74%, #d8f4ff 0 1px, transparent 1.7px),
+    linear-gradient(145deg, transparent 42%, #d8f4ff2b 42.4% 42.8%, transparent 43.2% 100%);
+  background-size: 180px 100px;
+  opacity: 0.82;
+  animation: profile-stars 18s linear infinite;
+}
+.profile-effect-constellation::after {
+  background: linear-gradient(115deg, transparent 20%, #73dfff30 52%, transparent 82%);
+  transform: translateX(-100%);
+  animation: profile-glint 10s ease-in-out infinite;
+}
+.profile-effect-cyber::before {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 15px, #6ef8dc2b 16px, transparent 17px 30px),
+    repeating-linear-gradient(90deg, transparent 0 23px, #6ef8dc24 24px, transparent 25px 46px),
+    linear-gradient(120deg, #102f3740, #00d8b520 55%, #14203966);
+  opacity: 0.78;
+}
+.profile-effect-cyber::after {
+  background: linear-gradient(180deg, transparent 0 42%, #65ffe84f 49%, #65ffe81c 52%, transparent 60%);
+  background-size: 100% 220%;
+  animation: profile-scan 4s linear infinite;
+}
+.profile-effect-waves::before {
+  background:
+    repeating-linear-gradient(165deg, transparent 0 15px, #8cf7ee45 16px 17px, transparent 18px 34px),
+    linear-gradient(145deg, #063c5752, #09c6ae2b 52%, #16284c50);
+  background-size: 160% 180%;
+  opacity: 0.82;
+  animation: profile-tide 11s ease-in-out infinite alternate;
+}
+.profile-effect-waves::after {
+  background: linear-gradient(110deg, transparent 15%, #b6fff12e 48%, transparent 78%);
+  transform: translateX(-100%);
+  animation: profile-glint 8s ease-in-out infinite;
 }
 @keyframes profile-aurora {
-  from { transform: translateX(-3%) scale(1); }
-  to { transform: translateX(3%) scale(1.08); }
+  from { background-position: 0% 40%; }
+  to { background-position: 100% 60%; }
 }
 @keyframes profile-holographic {
   from { background-position: 0% 40%; }
   to { background-position: 100% 60%; }
+}
+@keyframes profile-glint {
+  0%, 20% { transform: translateX(-100%); }
+  75%, 100% { transform: translateX(100%); }
+}
+@keyframes profile-petals {
+  from { background-position: 0 -58px; }
+  to { background-position: 35px 58px; }
+}
+@keyframes profile-ember {
+  from { opacity: 0.5; }
+  to { opacity: 0.92; }
+}
+@keyframes profile-sparks {
+  from { background-position: 0 42px; }
+  to { background-position: 24px -10px; }
+}
+@keyframes profile-stars {
+  from { background-position: 0 0; }
+  to { background-position: 90px -40px; }
+}
+@keyframes profile-scan {
+  from { background-position-y: 100%; }
+  to { background-position-y: -100%; }
+}
+@keyframes profile-tide {
+  from { background-position: 0% 30%; }
+  to { background-position: 100% 70%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
