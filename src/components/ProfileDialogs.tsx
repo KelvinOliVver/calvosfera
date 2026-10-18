@@ -7,26 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import {
-  Activity,
-  CalendarDays,
-  Camera,
-  ChevronDown,
-  Copy,
-  ExternalLink,
-  Heart,
-  ImagePlus,
-  LayoutGrid,
-  Link2,
-  MessageCircle,
-  MoreHorizontal,
-  Palette,
-  Plus,
-  Sparkles,
-  Trash2,
-  UserRound,
-  X,
-} from "lucide-react";
+import { Activity, CalendarDays, Camera, ChevronDown, Copy, ExternalLink, Heart, ImagePlus, LayoutGrid, Link2, MessageCircle, MoveHorizontal as MoreHorizontal, Palette, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import cityBanner from "@/assets/bg.jpg";
