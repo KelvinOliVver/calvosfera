@@ -240,6 +240,41 @@ html[data-theme="amoled"] {
   .loading-track { background: var(--muted); }
   .loading-progress { animation: loading-sweep 1.2s ease-in-out infinite alternate; }
 
+  /* Ambiente suave atrás da conversa (temas escuros, exceto AMOLED) */
+  html:not([data-theme="light"]):not([data-theme="amoled"]) .conversation-panel {
+    background:
+      radial-gradient(1100px 460px at 88% -8%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 68%),
+      radial-gradient(900px 420px at -6% 104%, color-mix(in srgb, var(--secondary) 7%, transparent), transparent 66%),
+      var(--background);
+  }
+
+  /* Nomes personalizados legíveis em textos pequenos */
+  .message-row .profile-name-outline,
+  .member-list .profile-name-outline {
+    -webkit-text-stroke: 0.6px var(--profile-name-start);
+    paint-order: stroke fill;
+  }
+  .message-row .profile-name-neon {
+    text-shadow: 0 0 4px color-mix(in srgb, var(--profile-name-start) 70%, transparent);
+  }
+
+  /* Barra de rolagem discreta e consistente entre navegadores */
+  .conversation-panel ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .conversation-panel ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 14%, transparent);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+  .conversation-panel ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--foreground) 26%, transparent);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
   .theme-choice[data-theme-preview="dark"] { background: #171923; }
   .theme-choice[data-theme-preview="deep"] { background: #0a0b0e; }
   .theme-choice[data-theme-preview="graphite"] { background: #242528; }
@@ -275,6 +310,10 @@ html[data-theme="amoled"] .server-rail { background: #000; }
 @media (hover: none) {
   .message-actions { opacity: 1; }
 }
+
+/* Desempenho: sem brilho animado em cada nome dentro do chat —
+   dezenas de gradientes animados causam repaint constante. */
+.message-stream .profile-name-shine { animation: none; }
 
 @keyframes loading-sweep {
   from { transform: translateX(-35%); opacity: 0.65; }

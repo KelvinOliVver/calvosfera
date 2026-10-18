@@ -32,7 +32,9 @@ export function useVoice(me: string) {
   const [muted, setMuted] = useState(false);
   const [sharingScreen, setSharingScreen] = useState(false);
   const [remoteScreens, setRemoteScreens] = useState<Record<string, MediaStream>>({});
-  const [connectionStates, setConnectionStates] = useState<Record<string, RTCPeerConnectionState>>({});
+  const [connectionStates, setConnectionStates] = useState<Record<string, RTCPeerConnectionState>>(
+    {},
+  );
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -60,7 +62,8 @@ export function useVoice(me: string) {
       setMuted(false);
       setChannelId(id);
     } catch {
-      if (attempt === callAttemptRef.current) setError("Permita o acesso ao microfone para entrar na call");
+      if (attempt === callAttemptRef.current)
+        setError("Permita o acesso ao microfone para entrar na call");
     } finally {
       if (attempt === callAttemptRef.current) joiningRef.current = false;
     }
@@ -88,7 +91,11 @@ export function useVoice(me: string) {
       const stream = screenRef.current;
       screenRef.current = null;
       stream.getTracks().forEach((track) => track.stop());
-      await Promise.all([...screenSendersRef.current.values()].map((sender) => sender.replaceTrack(null).catch(() => {})));
+      await Promise.all(
+        [...screenSendersRef.current.values()].map((sender) =>
+          sender.replaceTrack(null).catch(() => {}),
+        ),
+      );
       setSharingScreen(false);
       return;
     }
@@ -110,12 +117,20 @@ export function useVoice(me: string) {
       track.onended = () => {
         if (screenRef.current !== stream) return;
         screenRef.current = null;
-        void Promise.all([...screenSendersRef.current.values()].map((sender) => sender.replaceTrack(null).catch(() => {})));
+        void Promise.all(
+          [...screenSendersRef.current.values()].map((sender) =>
+            sender.replaceTrack(null).catch(() => {}),
+          ),
+        );
         setSharingScreen(false);
       };
-      const results = await Promise.allSettled([...screenSendersRef.current.values()].map((sender) => attachScreenTrack(sender, track)));
+      const results = await Promise.allSettled(
+        [...screenSendersRef.current.values()].map((sender) => attachScreenTrack(sender, track)),
+      );
       if (results.some((result) => result.status === "rejected")) {
-        setError("A tela foi selecionada, mas não foi possível enviá-la para todas as pessoas. Tente compartilhar novamente.");
+        setError(
+          "A tela foi selecionada, mas não foi possível enviá-la para todas as pessoas. Tente compartilhar novamente.",
+        );
       }
       setSharingScreen(true);
     } catch (err) {
@@ -135,14 +150,16 @@ export function useVoice(me: string) {
   }
 
   async function enableRemoteAudio() {
-    await Promise.all([...remoteAudiosRef.current.entries()].map(async ([peer, audio]) => {
-      try {
-        await audio.play();
-        blockedAudioPeersRef.current.delete(peer);
-      } catch {
-        blockedAudioPeersRef.current.add(peer);
-      }
-    }));
+    await Promise.all(
+      [...remoteAudiosRef.current.entries()].map(async ([peer, audio]) => {
+        try {
+          await audio.play();
+          blockedAudioPeersRef.current.delete(peer);
+        } catch {
+          blockedAudioPeersRef.current.add(peer);
+        }
+      }),
+    );
     setAudioBlocked(blockedAudioPeersRef.current.size > 0);
   }
 
@@ -160,7 +177,11 @@ export function useVoice(me: string) {
     });
     const send = async (p: Omit<Signal, "from">) => {
       try {
-        const status = await ch.send({ type: "broadcast", event: "signal", payload: { ...p, from: me } });
+        const status = await ch.send({
+          type: "broadcast",
+          event: "signal",
+          payload: { ...p, from: me },
+        });
         if (status !== "ok") setError("A conexão de sinalização caiu. Tentando reconectar…");
         return status;
       } catch (err) {
@@ -179,7 +200,9 @@ export function useVoice(me: string) {
       const screenSender = pc.addTransceiver("video", { direction: "sendrecv" }).sender;
       screenSendersRef.current.set(peer, screenSender);
       if (screenRef.current?.getVideoTracks()[0]) {
-        void attachScreenTrack(screenSender, screenRef.current.getVideoTracks()[0]).catch((err) => console.warn("screen track attach error", err));
+        void attachScreenTrack(screenSender, screenRef.current.getVideoTracks()[0]).catch((err) =>
+          console.warn("screen track attach error", err),
+        );
       }
       pc.onicecandidate = (e) => {
         if (e.candidate) send({ to: peer, kind: "ice", candidate: e.candidate.toJSON() });
@@ -195,11 +218,14 @@ export function useVoice(me: string) {
             return;
           }
           restartAttempts.set(peer, attempts + 1);
-          void pc.createOffer({ iceRestart: true }).then(async (offer) => {
-            if (pc.connectionState === "closed") return;
-            await pc.setLocalDescription(offer);
-            await send({ to: peer, kind: "offer", sdp: pc.localDescription ?? offer });
-          }).catch((err) => console.error("voice ICE restart error", err));
+          void pc
+            .createOffer({ iceRestart: true })
+            .then(async (offer) => {
+              if (pc.connectionState === "closed") return;
+              await pc.setLocalDescription(offer);
+              await send({ to: peer, kind: "offer", sdp: pc.localDescription ?? offer });
+            })
+            .catch((err) => console.error("voice ICE restart error", err));
         }, 1500);
         restartTimers.set(peer, timer);
       };
@@ -227,11 +253,19 @@ export function useVoice(me: string) {
             // Wait briefly to avoid flicker during short network interruptions.
             setTimeout(() => {
               if (!e.track.muted || e.track.readyState === "ended") return;
-              setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
+              setRemoteScreens((current) => {
+                const next = { ...current };
+                delete next[peer];
+                return next;
+              });
             }, 1200);
           };
           const endRemote = () => {
-            setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
+            setRemoteScreens((current) => {
+              const next = { ...current };
+              delete next[peer];
+              return next;
+            });
           };
           e.track.addEventListener("unmute", showRemote);
           e.track.addEventListener("mute", hideRemote);
@@ -247,13 +281,15 @@ export function useVoice(me: string) {
           audios.set(peer, a);
         }
         a.srcObject = e.streams[0] ?? null;
-        a.play().then(() => {
-          blockedAudioPeersRef.current.delete(peer);
-          setAudioBlocked(blockedAudioPeersRef.current.size > 0);
-        }).catch(() => {
-          blockedAudioPeersRef.current.add(peer);
-          setAudioBlocked(true);
-        });
+        a.play()
+          .then(() => {
+            blockedAudioPeersRef.current.delete(peer);
+            setAudioBlocked(blockedAudioPeersRef.current.size > 0);
+          })
+          .catch(() => {
+            blockedAudioPeersRef.current.add(peer);
+            setAudioBlocked(true);
+          });
       };
       pcs.set(peer, pc);
       return pc;
@@ -280,8 +316,16 @@ export function useVoice(me: string) {
       blockedAudioPeersRef.current.delete(peer);
       setAudioBlocked(blockedAudioPeersRef.current.size > 0);
       screenSendersRef.current.delete(peer);
-      setRemoteScreens((current) => { const next = { ...current }; delete next[peer]; return next; });
-      setConnectionStates((current) => { const next = { ...current }; delete next[peer]; return next; });
+      setRemoteScreens((current) => {
+        const next = { ...current };
+        delete next[peer];
+        return next;
+      });
+      setConnectionStates((current) => {
+        const next = { ...current };
+        delete next[peer];
+        return next;
+      });
     };
 
     const flush = async (peer: string, pc: RTCPeerConnection) => {
@@ -338,13 +382,30 @@ export function useVoice(me: string) {
     };
   }, [channelId, me]);
 
-  useEffect(() => () => {
-    callAttemptRef.current += 1;
-    screenRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    screenRef.current = null;
-    streamRef.current = null;
-  }, []);
+  useEffect(
+    () => () => {
+      callAttemptRef.current += 1;
+      screenRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      screenRef.current = null;
+      streamRef.current = null;
+    },
+    [],
+  );
 
-  return { channelId, peers, muted, sharingScreen, remoteScreens, connectionStates, audioBlocked, error, join, leave, toggleMute, toggleScreenShare, enableRemoteAudio };
+  return {
+    channelId,
+    peers,
+    muted,
+    sharingScreen,
+    remoteScreens,
+    connectionStates,
+    audioBlocked,
+    error,
+    join,
+    leave,
+    toggleMute,
+    toggleScreenShare,
+    enableRemoteAudio,
+  };
 }

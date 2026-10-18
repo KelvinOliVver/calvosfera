@@ -187,8 +187,19 @@ function avatarFrameClass(frame: AvatarFrame) {
   return "bg-popover p-1.5";
 }
 
-function nameClass(extras: ProfileExtras) {
+export function nameClass(extras: ProfileExtras) {
   return `profile-name-${extras.name_style} name-font-${extras.name_font}`;
+}
+
+export function profileNameClass(p?: Profile) {
+  return nameClass(profileExtras(p?.profile_extras));
+}
+
+export function profileNameVars(p?: Profile): CSSProperties {
+  return {
+    "--profile-name-start": p?.theme_primary || "var(--foreground)",
+    "--profile-name-end": p?.theme_accent || p?.theme_primary || "var(--foreground)",
+  } as CSSProperties;
 }
 
 function safeExternalUrl(value: string) {
@@ -535,8 +546,15 @@ export function ViewProfile({
         <DialogTitle className="sr-only">Perfil de {p ? nameOf(p) : ""}</DialogTitle>
         {p && (
           <div className="flex max-h-[88dvh] min-h-[min(600px,80dvh)] flex-col overflow-hidden">
-            <div className={`profile-effect relative h-48 shrink-0 overflow-hidden ${profileEffectClass(extras.profile_effect)}`} style={bannerStyle(p)}>
-              <img src={p.banner_url || cityBanner} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+            <div
+              className={`profile-effect relative h-48 shrink-0 overflow-hidden ${profileEffectClass(extras.profile_effect)}`}
+              style={bannerStyle(p)}
+            >
+              <img
+                src={p.banner_url || cityBanner}
+                alt=""
+                className="absolute inset-0 z-0 h-full w-full object-cover"
+              />
               <div className="absolute inset-0 z-[2] bg-gradient-to-t from-black/85 via-black/20 to-black/5" />
               <span className="absolute bottom-4 left-5 z-[3] inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] text-white/90 backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5 text-primary" /> PERFIL DA CALVOSFERA
@@ -552,10 +570,13 @@ export function ViewProfile({
                 <div className="flex flex-wrap items-center gap-2">
                   <h2
                     className={`${nameClass(extras)} break-words text-2xl font-bold leading-tight`}
-                    style={{
-                      "--profile-name-start": p.theme_primary || "var(--foreground)",
-                      "--profile-name-end": p.theme_accent || p.theme_primary || "var(--foreground)",
-                    } as CSSProperties}
+                    style={
+                      {
+                        "--profile-name-start": p.theme_primary || "var(--foreground)",
+                        "--profile-name-end":
+                          p.theme_accent || p.theme_primary || "var(--foreground)",
+                      } as CSSProperties
+                    }
                   >
                     {nameOf(p)}
                   </h2>
@@ -566,7 +587,8 @@ export function ViewProfile({
                   )}
                 </div>
                 <p className="mt-1 break-all text-sm text-muted-foreground">
-                  @{p.username}{p.pronouns ? ` · ${p.pronouns}` : ""}
+                  @{p.username}
+                  {p.pronouns ? ` · ${p.pronouns}` : ""}
                 </p>
                 {p.custom_status && (
                   <div className="mt-2 flex max-w-xl items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.07] px-3 py-2">
@@ -596,185 +618,191 @@ export function ViewProfile({
               </div>
             </header>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-            <section className="order-2 min-h-0 max-h-[38dvh] w-full shrink-0 overflow-y-auto border-t border-border bg-popover md:order-2 md:max-h-none md:w-[280px] md:border-l md:border-t-0">
+              <section className="order-2 min-h-0 max-h-[38dvh] w-full shrink-0 overflow-y-auto border-t border-border bg-popover md:order-2 md:max-h-none md:w-[280px] md:border-l md:border-t-0">
                 <div className="space-y-3 p-4 md:p-5">
-                {p.created_at && (
-                  <section className="mb-3 flex items-center gap-3 rounded-xl border border-border bg-background/35 p-3.5">
-                    <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                        Na Calvosfera desde
-                      </p>
-                      <p className="mt-0.5 text-sm font-medium">
-                        {new Date(p.created_at).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </section>
-                )}
-                {extras.connections.length > 0 && (
-                  <section className="rounded-xl border border-border bg-background/35 p-3.5">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Conexões
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {extras.connections.map((connection) => {
-                        const url = safeExternalUrl(connection.url);
-                        return url ? (
-                          <a
-                            key={connection.id}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-xs text-foreground/85 transition hover:bg-accent"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            {connection.label}
-                          </a>
-                        ) : null;
-                      })}
-                    </div>
-                  </section>
-                )}
-              </div>
-            </section>
-
-            <section className="order-1 flex min-h-0 min-w-0 flex-1 flex-col bg-panel md:order-1">
-              <header className="border-b border-border px-5 pb-0 pt-5 md:px-7">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Perfil</p>
-                <div
-                  role="tablist"
-                  aria-label="Conteúdo do perfil"
-                  className="mt-3 flex gap-6 overflow-x-auto"
-                >
-                  {(
-                    [
-                      ["wall", "Sobre"],
-                      ["activity", "Atividade"],
-                      ["wishlist", "Interesses"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === key}
-                      onClick={() => setTab(key)}
-                      className={`relative shrink-0 pb-3 text-sm font-semibold transition ${tab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                    >
-                      {label}
-                      {tab === key && (
-                        <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </header>
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7" role="tabpanel">
-                {tab === "wall" && (
-                  <>
-                    <section className="mb-6 rounded-xl border border-border bg-background/45 p-4 sm:p-5">
-                      <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        <UserRound className="h-4 w-4 text-primary" /> Sobre {nameOf(p)}
-                      </div>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
-                        {p.bio || "Este membro ainda não adicionou uma apresentação."}
-                      </p>
-                    </section>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Destaques</p>
-                      <span className="text-xs text-muted-foreground">{extras.widgets.length} {extras.widgets.length === 1 ? "item" : "itens"}</span>
-                    </div>
-                    {extras.widgets.length ? (
-                      <div className="space-y-3">
-                        {extras.widgets.map((widget) => {
-                          const url = safeExternalUrl(widget.url);
-                          return (
-                            <article
-                              key={widget.id}
-                              className="overflow-hidden rounded-xl border border-border bg-background/45"
-                            >
-                              <div className="border-b border-border bg-gradient-to-r from-primary/10 via-secondary/10 to-transparent px-4 py-3">
-                                <h3 className="text-sm font-semibold">{widget.title}</h3>
-                              </div>
-                              <div className="p-4">
-                                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                                  {widget.description}
-                                </p>
-                                {url && (
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    Abrir conexão
-                                  </a>
-                                )}
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-background/30 px-4 py-3.5">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <LayoutGrid className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">Mural sem publicações</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Os widgets de {nameOf(p)} aparecerão aqui.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-                {tab === "activity" && (
-                  <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
-                    <Activity className="h-6 w-6 text-muted-foreground" />
-                    <p className="mt-3 text-sm font-medium">Atividade não compartilhada</p>
-                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-                      As atividades só aparecem aqui quando houver dados disponíveis e o membro
-                      decidir compartilhá-las.
-                    </p>
-                  </div>
-                )}
-                {tab === "wishlist" && (
-                  <>
-                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      Lista de desejos
-                    </p>
-                    {extras.wishlist.length ? (
-                      <ul className="space-y-2">
-                        {extras.wishlist.map((item, index) => (
-                          <li
-                            key={`${item}-${index}`}
-                            className="flex items-center gap-3 rounded-xl border border-border bg-background/45 px-4 py-3 text-sm"
-                          >
-                            <Heart className="h-4 w-4 shrink-0 text-primary" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
-                        <Heart className="h-6 w-6 text-muted-foreground" />
-                        <p className="mt-3 text-sm font-medium">Lista ainda vazia</p>
-                        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-                          Os itens que {nameOf(p)} escolher compartilhar aparecerão aqui.
+                  {p.created_at && (
+                    <section className="mb-3 flex items-center gap-3 rounded-xl border border-border bg-background/35 p-3.5">
+                      <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          Na Calvosfera desde
+                        </p>
+                        <p className="mt-0.5 text-sm font-medium">
+                          {new Date(p.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
                         </p>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
+                    </section>
+                  )}
+                  {extras.connections.length > 0 && (
+                    <section className="rounded-xl border border-border bg-background/35 p-3.5">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                        Conexões
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {extras.connections.map((connection) => {
+                          const url = safeExternalUrl(connection.url);
+                          return url ? (
+                            <a
+                              key={connection.id}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-xs text-foreground/85 transition hover:bg-accent"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              {connection.label}
+                            </a>
+                          ) : null;
+                        })}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              </section>
+
+              <section className="order-1 flex min-h-0 min-w-0 flex-1 flex-col bg-panel md:order-1">
+                <header className="border-b border-border px-5 pb-0 pt-5 md:px-7">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Perfil
+                  </p>
+                  <div
+                    role="tablist"
+                    aria-label="Conteúdo do perfil"
+                    className="mt-3 flex gap-6 overflow-x-auto"
+                  >
+                    {(
+                      [
+                        ["wall", "Sobre"],
+                        ["activity", "Atividade"],
+                        ["wishlist", "Interesses"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === key}
+                        onClick={() => setTab(key)}
+                        className={`relative shrink-0 pb-3 text-sm font-semibold transition ${tab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {label}
+                        {tab === key && (
+                          <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </header>
+                <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-7" role="tabpanel">
+                  {tab === "wall" && (
+                    <>
+                      <section className="mb-6 rounded-xl border border-border bg-background/45 p-4 sm:p-5">
+                        <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                          <UserRound className="h-4 w-4 text-primary" /> Sobre {nameOf(p)}
+                        </div>
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
+                          {p.bio || "Este membro ainda não adicionou uma apresentação."}
+                        </p>
+                      </section>
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                          Destaques
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {extras.widgets.length} {extras.widgets.length === 1 ? "item" : "itens"}
+                        </span>
+                      </div>
+                      {extras.widgets.length ? (
+                        <div className="space-y-3">
+                          {extras.widgets.map((widget) => {
+                            const url = safeExternalUrl(widget.url);
+                            return (
+                              <article
+                                key={widget.id}
+                                className="overflow-hidden rounded-xl border border-border bg-background/45"
+                              >
+                                <div className="border-b border-border bg-gradient-to-r from-primary/10 via-secondary/10 to-transparent px-4 py-3">
+                                  <h3 className="text-sm font-semibold">{widget.title}</h3>
+                                </div>
+                                <div className="p-4">
+                                  <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                                    {widget.description}
+                                  </p>
+                                  {url && (
+                                    <a
+                                      href={url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                      Abrir conexão
+                                    </a>
+                                  )}
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-background/30 px-4 py-3.5">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <LayoutGrid className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">Mural sem publicações</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                              Os widgets de {nameOf(p)} aparecerão aqui.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {tab === "activity" && (
+                    <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
+                      <Activity className="h-6 w-6 text-muted-foreground" />
+                      <p className="mt-3 text-sm font-medium">Atividade não compartilhada</p>
+                      <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                        As atividades só aparecem aqui quando houver dados disponíveis e o membro
+                        decidir compartilhá-las.
+                      </p>
+                    </div>
+                  )}
+                  {tab === "wishlist" && (
+                    <>
+                      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        Lista de desejos
+                      </p>
+                      {extras.wishlist.length ? (
+                        <ul className="space-y-2">
+                          {extras.wishlist.map((item, index) => (
+                            <li
+                              key={`${item}-${index}`}
+                              className="flex items-center gap-3 rounded-xl border border-border bg-background/45 px-4 py-3 text-sm"
+                            >
+                              <Heart className="h-4 w-4 shrink-0 text-primary" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center">
+                          <Heart className="h-6 w-6 text-muted-foreground" />
+                          <p className="mt-3 text-sm font-medium">Lista ainda vazia</p>
+                          <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                            Os itens que {nameOf(p)} escolher compartilhar aparecerão aqui.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         )}
@@ -807,10 +835,16 @@ const PROFILE_PALETTES = [
   { name: "Dourado", primary: "#facc15", accent: "#b45309", banner: "#2d230c" },
   { name: "Vampiro", primary: "#e11d48", accent: "#3b0764", banner: "#1f0a14" },
   { name: "Gelo", primary: "#e0f2fe", accent: "#7dd3fc", banner: "#1b2a38" },
+  { name: "Mel", primary: "#fbbf24", accent: "#b45309", banner: "#2b1f0a" },
+  { name: "Coral", primary: "#fb7185", accent: "#be123c", banner: "#33101a" },
+  { name: "Menta", primary: "#34d399", accent: "#115e59", banner: "#0c2620" },
+  { name: "Cobalto", primary: "#60a5fa", accent: "#1e3a8a", banner: "#101c3a" },
 ];
 
 function randomHex() {
-  return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0")}`;
+  return `#${Math.floor(Math.random() * 0xffffff)
+    .toString(16)
+    .padStart(6, "0")}`;
 }
 
 function ColorField({
@@ -1054,8 +1088,47 @@ export function EditProfile({
           banner_color: draft.banner_color ?? null,
           theme_primary: draft.theme_primary ?? null,
           theme_accent: draft.theme_accent ?? null,
-        })
+          profile_extras: extrasToSave,
+        } as never)
         .eq("id", me.id);
+      if (
+        error &&
+        (error.code === "42703" ||
+          error.code === "PGRST204" ||
+          error.message.includes("profile_extras"))
+      ) {
+        const { profile_extras: _unused, ...withoutExtras } = {
+          display_name: draft.display_name?.trim().slice(0, 32) || null,
+          pronouns: draft.pronouns?.trim().slice(0, 40) || null,
+          bio: draft.bio?.slice(0, 190) || null,
+          status: draft.status ?? "online",
+          custom_status: draft.custom_status?.trim().slice(0, 80) || null,
+          avatar_url: draft.avatar_url,
+          banner_url: draft.banner_url,
+          banner_color: draft.banner_color ?? null,
+          theme_primary: draft.theme_primary ?? null,
+          theme_accent: draft.theme_accent ?? null,
+        };
+        const retry = await supabase.from("profiles").update(withoutExtras).eq("id", me.id);
+        if (retry.error) {
+          toast.error(retry.error.message);
+          return;
+        }
+        try {
+          writeProfileExtrasCache(me.id, extrasToSave);
+        } catch (error) {
+          toast.error(
+            `Perfil salvo, mas não foi possível guardar widgets e conexões neste dispositivo: ${error instanceof Error ? error.message : "erro inesperado"}`,
+          );
+        }
+        const savedProfile = { ...draft, profile_extras: extrasToSave };
+        setSavedDraft(savedProfile);
+        onSaved(savedProfile);
+        toast.warning(
+          "Perfil salvo. Widgets, conexões e moldura ficam neste dispositivo até a migração do banco ser aplicada.",
+        );
+        return;
+      }
       if (error) {
         toast.error(error.message);
         return;
@@ -1067,30 +1140,10 @@ export function EditProfile({
           `Perfil salvo, mas não foi possível guardar widgets e conexões neste dispositivo: ${error instanceof Error ? error.message : "erro inesperado"}`,
         );
       }
-
-      const { error: extrasError } = await supabase
-        .from("profiles")
-        .update({ profile_extras: extrasToSave } as never)
-        .eq("id", me.id);
       const savedProfile = { ...draft, profile_extras: extrasToSave };
       setSavedDraft(savedProfile);
       onSaved(savedProfile);
-
-      if (
-        extrasError?.code === "42703" ||
-        extrasError?.code === "PGRST204" ||
-        extrasError?.message.includes("profile_extras")
-      ) {
-        toast.warning(
-          "Perfil salvo. Widgets, conexões e moldura ficam neste dispositivo até a migração do banco ser aplicada.",
-        );
-      } else if (extrasError) {
-        toast.error(
-          `Perfil salvo, mas não foi possível sincronizar widgets e conexões: ${extrasError.message}`,
-        );
-      } else {
-        toast.success("Alterações salvas");
-      }
+      toast.success("Alterações salvas");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -1106,12 +1159,17 @@ export function EditProfile({
         aria-label="Vistas da personalização"
         className="sticky top-0 z-[55] flex items-center gap-2 border-b border-border bg-rail/95 px-3 py-2 backdrop-blur md:hidden"
       >
-        <div role="tablist" className="grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-lg bg-background/70 p-1">
-          {([
-            ["edit", "Editar"],
-            ["preview", "Prévia"],
-            ["content", "Conteúdo"],
-          ] as const).map(([view, label]) => (
+        <div
+          role="tablist"
+          className="grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-lg bg-background/70 p-1"
+        >
+          {(
+            [
+              ["edit", "Editar"],
+              ["preview", "Prévia"],
+              ["content", "Conteúdo"],
+            ] as const
+          ).map(([view, label]) => (
             <button
               key={view}
               type="button"
@@ -1136,7 +1194,9 @@ export function EditProfile({
         </Button>
       </nav>
       <div className="grid min-h-[calc(100dvh-56px)] grid-cols-1 md:min-h-screen md:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:min-h-dvh xl:grid-cols-[minmax(270px,300px)_minmax(330px,0.9fr)_minmax(320px,1fr)]">
-        <aside className={`${mobileView === "edit" ? "block" : "hidden"} border-b border-border bg-rail md:row-span-2 md:block md:border-r md:border-b-0 xl:row-span-1`}>
+        <aside
+          className={`${mobileView === "edit" ? "block" : "hidden"} border-b border-border bg-rail md:row-span-2 md:block md:border-r md:border-b-0 xl:row-span-1`}
+        >
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <button
               onClick={() => setTab(tab === "profile" ? "account" : "profile")}
@@ -1333,7 +1393,9 @@ export function EditProfile({
                       >
                         <span
                           className="h-6 w-10 shrink-0 rounded-md border border-border shadow-inner"
-                          style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})` }}
+                          style={{
+                            background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`,
+                          }}
                         />
                         <span className="truncate group-hover:text-white">{palette.name}</span>
                       </button>
@@ -1405,34 +1467,57 @@ export function EditProfile({
                 </p>
                 <div
                   className="rounded-xl border border-border bg-panel px-3 py-4 text-center"
-                  style={{
-                    "--profile-name-start": draft.theme_primary || "var(--foreground)",
-                    "--profile-name-end": draft.theme_accent || draft.theme_primary || "var(--foreground)",
-                  } as CSSProperties}
+                  style={
+                    {
+                      "--profile-name-start": draft.theme_primary || "var(--foreground)",
+                      "--profile-name-end":
+                        draft.theme_accent || draft.theme_primary || "var(--foreground)",
+                    } as CSSProperties
+                  }
                 >
                   <span className={`${nameClass(extras)} text-2xl font-bold`}>{nameOf(draft)}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {([
-                    ["gradient", "Degradê"],
-                    ["solid", "Sólido"],
-                    ["neon", "Neon"],
-                    ["shine", "Brilho"],
-                    ["outline", "Contorno"],
-                  ] as const).map(([style, label]) => (
-                    <button key={style} type="button" aria-pressed={extras.name_style === style} onClick={() => setExtras({ name_style: style })} className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition ${extras.name_style === style ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  {(
+                    [
+                      ["gradient", "Degradê"],
+                      ["solid", "Sólido"],
+                      ["neon", "Neon"],
+                      ["shine", "Brilho"],
+                      ["outline", "Contorno"],
+                    ] as const
+                  ).map(([style, label]) => (
+                    <button
+                      key={style}
+                      type="button"
+                      aria-pressed={extras.name_style === style}
+                      onClick={() => setExtras({ name_style: style })}
+                      className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition ${extras.name_style === style ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}
+                    >
+                      {label}
+                    </button>
                   ))}
                 </div>
                 <SideLabel>Fonte do nome</SideLabel>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {([
-                    ["default", "Padrão"],
-                    ["display", "Título"],
-                    ["rounded", "Redonda"],
-                    ["mono", "Pixel"],
-                    ["serif", "Elegante"],
-                  ] as const).map(([font, label]) => (
-                    <button key={font} type="button" aria-pressed={extras.name_font === font} onClick={() => setExtras({ name_font: font })} className={`name-font-${font} rounded-lg border px-2 py-1.5 text-sm transition ${extras.name_font === font ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}>{label}</button>
+                  {(
+                    [
+                      ["default", "Padrão"],
+                      ["display", "Título"],
+                      ["rounded", "Redonda"],
+                      ["mono", "Pixel"],
+                      ["serif", "Elegante"],
+                    ] as const
+                  ).map(([font, label]) => (
+                    <button
+                      key={font}
+                      type="button"
+                      aria-pressed={extras.name_font === font}
+                      onClick={() => setExtras({ name_font: font })}
+                      className={`name-font-${font} rounded-lg border px-2 py-1.5 text-sm transition ${extras.name_font === font ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-panel hover:bg-accent"}`}
+                    >
+                      {label}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1565,7 +1650,9 @@ export function EditProfile({
           </div>
         </aside>
 
-        <main className={`${mobileView === "preview" ? "flex" : "hidden md:flex"} relative min-h-[620px] flex-col items-center justify-start gap-5 overflow-hidden border-b border-border bg-rail px-5 py-8 md:border-r xl:min-h-screen xl:px-7 xl:py-10`}>
+        <main
+          className={`${mobileView === "preview" ? "flex" : "hidden md:flex"} relative min-h-[620px] flex-col items-center justify-start gap-5 overflow-hidden border-b border-border bg-rail px-5 py-8 md:border-r xl:min-h-screen xl:px-7 xl:py-10`}
+        >
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.18]"
             style={{

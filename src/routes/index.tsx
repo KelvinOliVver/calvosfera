@@ -7,7 +7,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Calvosfera — servidor anime" },
-      { name: "description", content: "Chat e calls da Calvosfera com tema anime: perfis, banners e GIFs." },
+      {
+        name: "description",
+        content: "Chat e calls da Calvosfera com tema anime: perfis, banners e GIFs.",
+      },
       { property: "og:title", content: "Calvosfera — servidor anime" },
       { property: "og:description", content: "Chat e calls da Calvosfera com tema anime." },
       { property: "og:type", content: "website" },
@@ -28,7 +31,10 @@ function Index() {
           </span>
           <p className="mt-5 font-display text-xl font-bold tracking-tight">Calvosfera</p>
           <p className="mt-1 text-sm text-muted-foreground">Preparando seu espaço...</p>
-          <span className="loading-track mt-6 h-1 w-28 overflow-hidden rounded-full" aria-hidden="true">
+          <span
+            className="loading-track mt-6 h-1 w-28 overflow-hidden rounded-full"
+            aria-hidden="true"
+          >
             <span className="loading-progress block h-full w-1/2 rounded-full bg-primary" />
           </span>
         </div>

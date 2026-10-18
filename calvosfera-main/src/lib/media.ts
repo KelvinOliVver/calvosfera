@@ -27,5 +27,9 @@ export async function uploadAttachment(userId: string, file: File) {
   if (error) throw error;
   const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
   if (e2 || !data) throw e2 ?? new Error("Falha ao gerar link");
-  return { url: data.signedUrl, type: file.type || "application/octet-stream", name: file.name.slice(0, 200) };
+  return {
+    url: data.signedUrl,
+    type: file.type || "application/octet-stream",
+    name: file.name.slice(0, 200),
+  };
 }

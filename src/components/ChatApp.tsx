@@ -64,6 +64,8 @@ import {
   LEGACY_PROFILE_COLS,
   PROFILE_COLS,
   nameOf,
+  profileNameClass,
+  profileNameVars,
   readProfileExtrasCache,
   type Profile,
 } from "./ProfileDialogs";
@@ -88,7 +90,12 @@ type Message = {
   reply_to?: string | null;
   edited_at?: string | null;
 };
-type MessageReaction = { message_id: string; user_id: string; reaction: string; created_at?: string };
+type MessageReaction = {
+  message_id: string;
+  user_id: string;
+  reaction: string;
+  created_at?: string;
+};
 type ActivityNotification = {
   id: string;
   user_id: string;
@@ -192,7 +199,9 @@ export function ChatApp({ userId }: { userId: string }) {
 
   useEffect(() => {
     try {
-      setMembersCollapsed(window.localStorage.getItem(`calvosfera:members-collapsed:${userId}`) === "true");
+      setMembersCollapsed(
+        window.localStorage.getItem(`calvosfera:members-collapsed:${userId}`) === "true",
+      );
     } catch {
       // Keep the member panel available when browser storage is unavailable.
     }
@@ -202,7 +211,10 @@ export function ChatApp({ userId }: { userId: string }) {
   useEffect(() => {
     if (membersPreferenceUser !== userId) return;
     try {
-      window.localStorage.setItem(`calvosfera:members-collapsed:${userId}`, String(membersCollapsed));
+      window.localStorage.setItem(
+        `calvosfera:members-collapsed:${userId}`,
+        String(membersCollapsed),
+      );
     } catch {
       // The preference still applies until this page is closed.
     }
@@ -261,11 +273,18 @@ export function ChatApp({ userId }: { userId: string }) {
       .channel(`user-notifications-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${userId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "user_notifications",
+          filter: `user_id=eq.${userId}`,
+        },
         () => void loadActivityNotifications(),
       )
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [loadActivityNotifications, userId]);
 
   useEffect(() => {
@@ -350,7 +369,10 @@ export function ChatApp({ userId }: { userId: string }) {
       .eq("user_id", userId)
       .is("read_at", null);
     if (error) toast.error(`Não foi possível marcar os avisos como lidos: ${error.message}`);
-    else setActivityNotifications((items) => items.map((item) => ({ ...item, read_at: item.read_at ?? readAt })));
+    else
+      setActivityNotifications((items) =>
+        items.map((item) => ({ ...item, read_at: item.read_at ?? readAt })),
+      );
     setUnread({});
     try {
       window.localStorage.setItem(`calvosfera:unread:${userId}`, "{}");
@@ -368,7 +390,10 @@ export function ChatApp({ userId }: { userId: string }) {
         .eq("id", notification.id)
         .eq("user_id", userId);
       if (error) toast.error(`Não foi possível marcar o aviso como lido: ${error.message}`);
-      else setActivityNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read_at: readAt } : item));
+      else
+        setActivityNotifications((items) =>
+          items.map((item) => (item.id === notification.id ? { ...item, read_at: readAt } : item)),
+        );
     }
 
     if (notification.message_id) {
@@ -489,11 +514,25 @@ export function ChatApp({ userId }: { userId: string }) {
         let error;
         if (searchTarget?.channel_id === active) {
           const [before, after] = await Promise.all([
-            supabase.from("messages").select("*").eq("channel_id", active).lt("created_at", searchTarget.created_at).order("created_at", { ascending: false }).limit(40),
-            supabase.from("messages").select("*").eq("channel_id", active).gte("created_at", searchTarget.created_at).order("created_at", { ascending: true }).limit(41),
+            supabase
+              .from("messages")
+              .select("*")
+              .eq("channel_id", active)
+              .lt("created_at", searchTarget.created_at)
+              .order("created_at", { ascending: false })
+              .limit(40),
+            supabase
+              .from("messages")
+              .select("*")
+              .eq("channel_id", active)
+              .gte("created_at", searchTarget.created_at)
+              .order("created_at", { ascending: true })
+              .limit(41),
           ]);
           error = before.error ?? after.error;
-          data = error ? null : [...(before.data ?? []).reverse(), ...(after.data ?? [])] as Message[];
+          data = error
+            ? null
+            : ([...(before.data ?? []).reverse(), ...(after.data ?? [])] as Message[]);
         } else {
           const result = await supabase
             .from("messages")
@@ -521,7 +560,8 @@ export function ChatApp({ userId }: { userId: string }) {
             if (!cancelled && reactionData) setReactions(reactionData);
           }
           if (searchTarget?.channel_id === active) {
-            if (data.some((message) => message.id === searchTarget.id)) setSearchReadyId(searchTarget.id);
+            if (data.some((message) => message.id === searchTarget.id))
+              setSearchReadyId(searchTarget.id);
             else {
               toast.error("Essa mensagem não está mais disponível neste canal.");
               setSearchTarget(null);
@@ -569,16 +609,42 @@ export function ChatApp({ userId }: { userId: string }) {
           );
         },
       )
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reactions" }, (payload) => {
-        const reaction = payload.new as MessageReaction;
-        if (messagesRef.current.some((message) => message.id === reaction.message_id)) {
-          setReactions((current) => current.some((item) => item.message_id === reaction.message_id && item.user_id === reaction.user_id && item.reaction === reaction.reaction) ? current : [...current, reaction]);
-        }
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "message_reactions" }, (payload) => {
-        const reaction = payload.old as MessageReaction;
-        setReactions((current) => current.filter((item) => !(item.message_id === reaction.message_id && item.user_id === reaction.user_id && item.reaction === reaction.reaction)));
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const reaction = payload.new as MessageReaction;
+          if (messagesRef.current.some((message) => message.id === reaction.message_id)) {
+            setReactions((current) =>
+              current.some(
+                (item) =>
+                  item.message_id === reaction.message_id &&
+                  item.user_id === reaction.user_id &&
+                  item.reaction === reaction.reaction,
+              )
+                ? current
+                : [...current, reaction],
+            );
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const reaction = payload.old as MessageReaction;
+          setReactions((current) =>
+            current.filter(
+              (item) =>
+                !(
+                  item.message_id === reaction.message_id &&
+                  item.user_id === reaction.user_id &&
+                  item.reaction === reaction.reaction
+                ),
+            ),
+          );
+        },
+      )
       .subscribe();
     return () => {
       cancelled = true;
@@ -589,7 +655,9 @@ export function ChatApp({ userId }: { userId: string }) {
   useEffect(() => {
     if (searchTarget && searchReadyId === searchTarget.id && active === searchTarget.channel_id) {
       if (!messages.some((message) => message.id === searchTarget.id)) return;
-      document.getElementById(`message-${searchTarget.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document
+        .getElementById(`message-${searchTarget.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       setSearchTarget(null);
       return;
     }
@@ -714,17 +782,40 @@ export function ChatApp({ userId }: { userId: string }) {
   }
 
   async function toggleReaction(messageId: string, reaction: string) {
-    const existing = reactions.find((item) => item.message_id === messageId && item.user_id === userId && item.reaction === reaction);
+    const existing = reactions.find(
+      (item) =>
+        item.message_id === messageId && item.user_id === userId && item.reaction === reaction,
+    );
     const result = existing
-      ? await supabase.from("message_reactions").delete().eq("message_id", messageId).eq("user_id", userId).eq("reaction", reaction)
-      : await supabase.from("message_reactions").insert({ message_id: messageId, user_id: userId, reaction });
+      ? await supabase
+          .from("message_reactions")
+          .delete()
+          .eq("message_id", messageId)
+          .eq("user_id", userId)
+          .eq("reaction", reaction)
+      : await supabase
+          .from("message_reactions")
+          .insert({ message_id: messageId, user_id: userId, reaction });
     if (result.error) {
-      toast.error(result.error.code === "42P01" || result.error.code === "PGRST205" ? "Aplique a migração 0010_message_reactions.sql para ativar reações." : `Não foi possível reagir: ${result.error.message}`);
+      toast.error(
+        result.error.code === "42P01" || result.error.code === "PGRST205"
+          ? "Aplique a migração 0010_message_reactions.sql para ativar reações."
+          : `Não foi possível reagir: ${result.error.message}`,
+      );
       return;
     }
-    setReactions((current) => existing
-      ? current.filter((item) => !(item.message_id === messageId && item.user_id === userId && item.reaction === reaction))
-      : [...current, { message_id: messageId, user_id: userId, reaction }]);
+    setReactions((current) =>
+      existing
+        ? current.filter(
+            (item) =>
+              !(
+                item.message_id === messageId &&
+                item.user_id === userId &&
+                item.reaction === reaction
+              ),
+          )
+        : [...current, { message_id: messageId, user_id: userId, reaction }],
+    );
   }
 
   async function saveMessageEdit(messageId: string) {
@@ -1012,21 +1103,26 @@ export function ChatApp({ userId }: { userId: string }) {
                         >
                           <Avatar p={profiles[id]} size={20} />
                           <span className="min-w-0 flex-1 truncate">{nameOf(profiles[id])}</span>
-                          {id !== userId && (() => {
-                            const state = voice.connectionStates[id];
-                            const connected = state === "connected";
-                            const failed = state === "failed" || state === "disconnected";
-                            return (
-                              <span className="flex shrink-0 items-center gap-1 text-[10px]">
-                                <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-online" : failed ? "bg-destructive" : "bg-primary"}`} />
-                                {connected ? "Conectado" : failed ? "Reconectando" : "Conectando"}
-                              </span>
-                            );
-                          })()}
+                          {id !== userId &&
+                            (() => {
+                              const state = voice.connectionStates[id];
+                              const connected = state === "connected";
+                              const failed = state === "failed" || state === "disconnected";
+                              return (
+                                <span className="flex shrink-0 items-center gap-1 text-[10px]">
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-online" : failed ? "bg-destructive" : "bg-primary"}`}
+                                  />
+                                  {connected ? "Conectado" : failed ? "Reconectando" : "Conectando"}
+                                </span>
+                              );
+                            })()}
                         </div>
                       ))}
                       {voice.peers.length === 0 && (
-                        <p className="px-1 py-1 text-[10px] text-muted-foreground">Aguardando outras pessoas</p>
+                        <p className="px-1 py-1 text-[10px] text-muted-foreground">
+                          Aguardando outras pessoas
+                        </p>
                       )}
                     </div>
                   )}
@@ -1048,7 +1144,10 @@ export function ChatApp({ userId }: { userId: string }) {
                     <Volume2 className="h-4 w-4 text-primary" />
                   </IconBtn>
                 )}
-                <IconBtn onClick={voice.toggleScreenShare} label={voice.sharingScreen ? "Parar transmissão" : "Compartilhar tela"}>
+                <IconBtn
+                  onClick={voice.toggleScreenShare}
+                  label={voice.sharingScreen ? "Parar transmissão" : "Compartilhar tela"}
+                >
                   <MonitorUp className={`h-4 w-4 ${voice.sharingScreen ? "text-primary" : ""}`} />
                 </IconBtn>
                 <IconBtn onClick={voice.toggleMute} label={voice.muted ? "Desmutar" : "Mutar"}>
@@ -1123,19 +1222,27 @@ export function ChatApp({ userId }: { userId: string }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={activityTotal ? `Atividade, ${activityTotal} avisos pendentes` : "Atividade"}
+                  aria-label={
+                    activityTotal ? `Atividade, ${activityTotal} avisos pendentes` : "Atividade"
+                  }
                   title="Atividade"
                   className="relative h-8 w-8 shrink-0 text-muted-foreground hover:bg-accent"
                 >
                   <Bell className="h-4 w-4" />
-                  {activityTotal > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">{activityTotal > 99 ? "99+" : activityTotal}</span>}
+                  {activityTotal > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">
+                      {activityTotal > 99 ? "99+" : activityTotal}
+                    </span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-[min(22rem,calc(100vw-1rem))] p-0">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold">Atividade</p>
-                    <p className="text-xs text-muted-foreground">Menções, respostas e mensagens novas</p>
+                    <p className="text-xs text-muted-foreground">
+                      Menções, respostas e mensagens novas
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -1150,12 +1257,24 @@ export function ChatApp({ userId }: { userId: string }) {
                 <div className="max-h-[min(28rem,65dvh)] overflow-y-auto p-2">
                   {notificationsUnavailable && (
                     <p className="m-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                      Avisos de menções, respostas, amizades e mensagens privadas precisam da migração <strong>0011_user_notifications</strong> no Supabase.
+                      Avisos de menções, respostas, amizades e mensagens privadas precisam da
+                      migração <strong>0011_user_notifications</strong> no Supabase.
                     </p>
                   )}
-                  {activityNotifications.length > 0 && <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Avisos pessoais</p>}
+                  {activityNotifications.length > 0 && (
+                    <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Avisos pessoais
+                    </p>
+                  )}
                   {activityNotifications.map((notification) => {
-                    const NotificationIcon = notification.kind === "mention" ? AtSign : notification.kind === "reply" ? CornerUpLeft : notification.kind === "friend_request" ? UserPlus : MessageCircle;
+                    const NotificationIcon =
+                      notification.kind === "mention"
+                        ? AtSign
+                        : notification.kind === "reply"
+                          ? CornerUpLeft
+                          : notification.kind === "friend_request"
+                            ? UserPlus
+                            : MessageCircle;
                     return (
                       <Button
                         key={notification.id}
@@ -1166,22 +1285,54 @@ export function ChatApp({ userId }: { userId: string }) {
                         <NotificationIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium">{notification.title}</span>
-                          <span className="mt-0.5 block line-clamp-2 text-xs font-normal text-muted-foreground">{notification.body || (notification.actor_id ? profiles[notification.actor_id]?.username : "")}</span>
-                          <time className="mt-1 block text-[10px] font-normal text-muted-foreground">{new Date(notification.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</time>
+                          <span className="mt-0.5 block line-clamp-2 text-xs font-normal text-muted-foreground">
+                            {notification.body ||
+                              (notification.actor_id
+                                ? profiles[notification.actor_id]?.username
+                                : "")}
+                          </span>
+                          <time className="mt-1 block text-[10px] font-normal text-muted-foreground">
+                            {new Date(notification.created_at).toLocaleString("pt-BR", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })}
+                          </time>
                         </span>
-                        {!notification.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Não lido" />}
+                        {!notification.read_at && (
+                          <span
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
+                            aria-label="Não lido"
+                          />
+                        )}
                       </Button>
                     );
                   })}
-                  {channels.some((channel) => (unread[channel.id] ?? 0) > 0) && <p className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Canais com mensagens novas</p>}
-                  {channels.filter((channel) => (unread[channel.id] ?? 0) > 0).map((channel) => (
-                    <Button key={channel.id} variant="ghost" onClick={() => navigateToChannel(channel.id)} className="h-auto w-full justify-start gap-3 px-3 py-2 text-left">
-                      <Hash className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate text-sm">{channel.name}</span>
-                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">{unread[channel.id]}</span>
-                    </Button>
-                  ))}
-                  {activityTotal === 0 && !notificationsUnavailable && <p className="px-3 py-8 text-center text-sm text-muted-foreground">Tudo em dia. Nenhuma atividade nova.</p>}
+                  {channels.some((channel) => (unread[channel.id] ?? 0) > 0) && (
+                    <p className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Canais com mensagens novas
+                    </p>
+                  )}
+                  {channels
+                    .filter((channel) => (unread[channel.id] ?? 0) > 0)
+                    .map((channel) => (
+                      <Button
+                        key={channel.id}
+                        variant="ghost"
+                        onClick={() => navigateToChannel(channel.id)}
+                        className="h-auto w-full justify-start gap-3 px-3 py-2 text-left"
+                      >
+                        <Hash className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate text-sm">{channel.name}</span>
+                        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                          {unread[channel.id]}
+                        </span>
+                      </Button>
+                    ))}
+                  {activityTotal === 0 && !notificationsUnavailable && (
+                    <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                      Tudo em dia. Nenhuma atividade nova.
+                    </p>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -1242,10 +1393,29 @@ export function ChatApp({ userId }: { userId: string }) {
                 </div>
               </PopoverContent>
             </Popover>
-            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade"><Vote className="h-4 w-4" /></IconBtn></span>
-            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas"><Bookmark className="h-4 w-4" /></IconBtn></span>
-            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências"><Palette className="h-4 w-4" /></IconBtn></span>
-            <span className="hidden sm:inline-flex"><IconBtn onClick={() => setMessageSearchOpen(true)} label="Busca avançada de mensagens"><SlidersHorizontal className="h-4 w-4" /></IconBtn></span>
+            <span className="hidden sm:inline-flex">
+              <IconBtn onClick={() => setCommunityOpen(true)} label="Central da comunidade">
+                <Vote className="h-4 w-4" />
+              </IconBtn>
+            </span>
+            <span className="hidden sm:inline-flex">
+              <IconBtn onClick={() => setSavedMessagesOpen(true)} label="Mensagens salvas">
+                <Bookmark className="h-4 w-4" />
+              </IconBtn>
+            </span>
+            <span className="hidden sm:inline-flex">
+              <IconBtn onClick={() => setPreferencesOpen(true)} label="Aparência e preferências">
+                <Palette className="h-4 w-4" />
+              </IconBtn>
+            </span>
+            <span className="hidden sm:inline-flex">
+              <IconBtn
+                onClick={() => setMessageSearchOpen(true)}
+                label="Busca avançada de mensagens"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </IconBtn>
+            </span>
           </div>
           <IconBtn onClick={() => setSearchOpen((value) => !value)} label="Buscar mensagens">
             <Search className="h-4 w-4" />
@@ -1307,9 +1477,15 @@ export function ChatApp({ userId }: { userId: string }) {
           </div>
         )}
         {Object.entries(voice.remoteScreens).length > 0 && (
-          <section aria-label="Telas compartilhadas" className="grid shrink-0 gap-3 border-b border-border bg-black/90 p-3 sm:p-4">
+          <section
+            aria-label="Telas compartilhadas"
+            className="grid shrink-0 gap-3 border-b border-border bg-black/90 p-3 sm:p-4"
+          >
             {Object.entries(voice.remoteScreens).map(([peer, screen]) => (
-              <div key={peer} className="mx-auto w-full max-w-5xl overflow-hidden rounded-lg border border-border/70 bg-black">
+              <div
+                key={peer}
+                className="mx-auto w-full max-w-5xl overflow-hidden rounded-lg border border-border/70 bg-black"
+              >
                 <video
                   autoPlay
                   muted
@@ -1323,7 +1499,9 @@ export function ChatApp({ userId }: { userId: string }) {
                   className="max-h-[45dvh] min-h-40 w-full object-contain"
                   aria-label={`Tela compartilhada por ${nameOf(profiles[peer])}`}
                 />
-                <p className="bg-background/90 px-3 py-1.5 text-xs text-muted-foreground">Tela de {nameOf(profiles[peer])}</p>
+                <p className="bg-background/90 px-3 py-1.5 text-xs text-muted-foreground">
+                  Tela de {nameOf(profiles[peer])}
+                </p>
               </div>
             ))}
           </section>
@@ -1389,10 +1567,14 @@ export function ChatApp({ userId }: { userId: string }) {
             const p = profiles[m.user_id];
             const isMine = m.user_id === userId;
             const messageReactions = reactions.filter((reaction) => reaction.message_id === m.id);
-            const reactionCounts = Array.from(new Set(messageReactions.map((reaction) => reaction.reaction))).map((reaction) => ({
+            const reactionCounts = Array.from(
+              new Set(messageReactions.map((reaction) => reaction.reaction)),
+            ).map((reaction) => ({
               reaction,
               count: messageReactions.filter((item) => item.reaction === reaction).length,
-              mine: messageReactions.some((item) => item.user_id === userId && item.reaction === reaction),
+              mine: messageReactions.some(
+                (item) => item.user_id === userId && item.reaction === reaction,
+              ),
             }));
             const previous = visibleMessages[i - 1];
             const messageDate = new Date(m.created_at);
@@ -1445,7 +1627,8 @@ export function ChatApp({ userId }: { userId: string }) {
                         <Button
                           variant="ghost"
                           onClick={() => p && setViewing(p)}
-                          className="h-auto px-0 py-0 text-sm font-semibold text-foreground hover:bg-transparent hover:underline"
+                          className={`h-auto px-0 py-0 text-sm font-semibold text-foreground hover:bg-transparent hover:underline ${p ? profileNameClass(p) : ""}`}
+                          style={p ? profileNameVars(p) : undefined}
                         >
                           {nameOf(p)}
                         </Button>
@@ -1522,15 +1705,50 @@ export function ChatApp({ userId }: { userId: string }) {
                       <span className="ml-1 text-[10px] text-muted-foreground">(editada)</span>
                     )}
                     {m.attachment_url && <Attachment m={m} />}
-                    <div className={`mt-1 flex flex-wrap items-center gap-1 ${isMine ? "justify-end" : ""}`}>
+                    <div
+                      className={`mt-1 flex flex-wrap items-center gap-1 ${isMine ? "justify-end" : ""}`}
+                    >
                       {reactionCounts.map(({ reaction, count, mine }) => (
-                        <Button key={reaction} variant="outline" size="sm" onClick={() => void toggleReaction(m.id, reaction)} aria-pressed={mine} aria-label={`${count} reação ${reaction}${mine ? ", sua reação" : ""}`} className={`h-7 gap-1 rounded-full px-2 text-xs ${mine ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}>
-                          <span>{reaction}</span><span>{count}</span>
+                        <Button
+                          key={reaction}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void toggleReaction(m.id, reaction)}
+                          aria-pressed={mine}
+                          aria-label={`${count} reação ${reaction}${mine ? ", sua reação" : ""}`}
+                          className={`h-7 gap-1 rounded-full px-2 text-xs ${mine ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}
+                        >
+                          <span>{reaction}</span>
+                          <span>{count}</span>
                         </Button>
                       ))}
                       <Popover>
-                        <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Adicionar reação" className="h-7 w-7 text-muted-foreground"><Smile className="h-4 w-4" /></Button></PopoverTrigger>
-                        <PopoverContent align={isMine ? "end" : "start"} className="w-52 p-2"><div className="grid grid-cols-5 gap-1">{["👍", "❤️", "😂", "😮", "🎉"].map((reaction) => <Button key={reaction} variant="ghost" size="icon" aria-label={`Reagir ${reaction}`} className="text-lg" onClick={() => void toggleReaction(m.id, reaction)}>{reaction}</Button>)}</div></PopoverContent>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Adicionar reação"
+                            className="h-7 w-7 text-muted-foreground"
+                          >
+                            <Smile className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align={isMine ? "end" : "start"} className="w-52 p-2">
+                          <div className="grid grid-cols-5 gap-1">
+                            {["👍", "❤️", "😂", "😮", "🎉"].map((reaction) => (
+                              <Button
+                                key={reaction}
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Reagir ${reaction}`}
+                                className="text-lg"
+                                onClick={() => void toggleReaction(m.id, reaction)}
+                              >
+                                {reaction}
+                              </Button>
+                            ))}
+                          </div>
+                        </PopoverContent>
                       </Popover>
                     </div>
                   </div>
@@ -1550,7 +1768,11 @@ export function ChatApp({ userId }: { userId: string }) {
                     </Button>
                     <Button
                       variant="ghost"
-                      onClick={() => setThreadRoot(m.reply_to ? messages.find((item) => item.id === m.reply_to) ?? m : m)}
+                      onClick={() =>
+                        setThreadRoot(
+                          m.reply_to ? (messages.find((item) => item.id === m.reply_to) ?? m) : m,
+                        )
+                      }
                       className="h-8 w-8 p-1 text-muted-foreground"
                       aria-label={`Abrir thread${messages.filter((item) => item.reply_to === m.id).length ? `, ${messages.filter((item) => item.reply_to === m.id).length} respostas` : ""}`}
                       title="Abrir thread"
@@ -1853,13 +2075,28 @@ export function ChatApp({ userId }: { userId: string }) {
             >
               <Search /> Buscar mensagens <CommandShortcut>Canal atual</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={() => { setCommunityOpen(true); setCommandOpen(false); }}>
+            <CommandItem
+              onSelect={() => {
+                setCommunityOpen(true);
+                setCommandOpen(false);
+              }}
+            >
               <Vote /> Central da comunidade
             </CommandItem>
-            <CommandItem onSelect={() => { setSavedMessagesOpen(true); setCommandOpen(false); }}>
+            <CommandItem
+              onSelect={() => {
+                setSavedMessagesOpen(true);
+                setCommandOpen(false);
+              }}
+            >
               <Bookmark /> Mensagens salvas
             </CommandItem>
-            <CommandItem onSelect={() => { setMessageSearchOpen(true); setCommandOpen(false); }}>
+            <CommandItem
+              onSelect={() => {
+                setMessageSearchOpen(true);
+                setCommandOpen(false);
+              }}
+            >
               <SlidersHorizontal /> Busca avançada de mensagens
             </CommandItem>
             <CommandItem
@@ -2179,7 +2416,12 @@ function MemberGroup({
                 ring="border-panel"
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{nameOf(p)}</span>
+                <span
+                  className={`block truncate text-sm font-semibold ${profileNameClass(p)}`}
+                  style={profileNameVars(p)}
+                >
+                  {nameOf(p)}
+                </span>
                 {p.custom_status && (
                   <span className="block truncate text-[11px] font-normal text-muted-foreground">
                     {p.custom_status}

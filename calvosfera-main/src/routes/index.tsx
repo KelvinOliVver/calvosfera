@@ -7,7 +7,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Calvosfera — servidor anime" },
-      { name: "description", content: "Chat e calls da Calvosfera com tema anime: perfis, banners e GIFs." },
+      {
+        name: "description",
+        content: "Chat e calls da Calvosfera com tema anime: perfis, banners e GIFs.",
+      },
       { property: "og:title", content: "Calvosfera — servidor anime" },
       { property: "og:description", content: "Chat e calls da Calvosfera com tema anime." },
       { property: "og:type", content: "website" },
@@ -20,7 +23,11 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { user, loading } = useAuth();
   if (loading) {
-    return <div className="flex h-screen items-center justify-center text-sakura font-display text-2xl">Carregando...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center text-sakura font-display text-2xl">
+        Carregando...
+      </div>
+    );
   }
   return user ? <ChatApp userId={user.id} /> : <AuthScreen />;
 }
